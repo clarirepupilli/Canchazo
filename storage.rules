@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// ============================================================
+// Storage rules — CANCHAZO
+// ESTADO ACTUAL: modo de prueba (open) para desarrollo rápido.
+// EXPIRA: 2026-09-05. Después de esa fecha TODO queda denegado.
+// TODO(hardening): solo usuarios autenticados pueden subir;
+// lectura pública para imágenes de canchas.
+// ============================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.time < timestamp.date(2026, 9, 5);
+    }
+  }
+}

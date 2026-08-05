@@ -1,0 +1,9 @@
+{
+  "project": "canchazo-app",
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
