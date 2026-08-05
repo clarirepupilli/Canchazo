@@ -1,0 +1,188 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { BookingStatus } from '../../types';
+
+interface BookingsListProps {
+  selectedDay?: number | null;
+  selectedMonth?: number;
+  onClearDayFilter?: () => void;
+}
+
+export const BookingsList: React.FC<BookingsListProps> = ({ selectedDay, selectedMonth, onClearDayFilter }) => {
+  const { bookings, toggleBookingStatus } = useApp();
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+
+  // Filter bookings if selectedDay is set
+  const displayList = selectedDay
+    ? bookings.filter((b) => {
+        if (b.date) {
+          const parts = b.date.split('-');
+          if (parts.length === 3) {
+            const matchesDay = parseInt(parts[2], 10) === selectedDay;
+            const matchesMonth = selectedMonth === undefined || parseInt(parts[1], 10) === selectedMonth;
+            return matchesDay && matchesMonth;
+          }
+        }
+        // Fallback matching
+        return true;
+      })
+    : bookings;
+
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+        <div>
+          <h3 className="font-headline text-base sm:text-lg font-extrabold text-[#006c49] flex items-center gap-2">
+            <span className="material-symbols-outlined text-xl">event_available</span>
+            <span>
+              {selectedDay ? `Turnos del Día ${selectedDay}` : 'Próximas Reservas'}
+            </span>
+          </h3>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">
+            Administra los turnos de tu complejo y su estado de pago
+          </p>
+        </div>
+
+        {selectedDay && (
+          <button
+            type="button"
+            onClick={onClearDayFilter}
+            className="text-xs font-bold text-[#006c49] hover:underline flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60 self-start sm:self-auto"
+          >
+            <span>Día {selectedDay} (Ver todas)</span>
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {displayList.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-2">
+            <span className="material-symbols-outlined text-3xl text-gray-400">event_busy</span>
+            <p className="text-xs font-semibold text-gray-600">
+              {selectedDay
+                ? `No hay reservas registradas para el día ${selectedDay}.`
+                : 'Aún no hay reservas registradas en el sistema.'}
+            </p>
+            {selectedDay && (
+              <button
+                type="button"
+                onClick={onClearDayFilter}
+                className="text-xs font-bold text-[#006c49] hover:underline"
+              >
+                Ver todas las reservas
+              </button>
+            )}
+          </div>
+        ) : (
+          displayList.map((booking) => {
+          const status = booking.status;
+          const isPaid = status === 'Pagado';
+          const isPending = status === 'Pendiente';
+          const isCanceled = status === 'Cancelado';
+
+          return (
+            <div
+              key={booking.id}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl transition-all border ${
+                isCanceled
+                  ? 'bg-red-50/50 border-red-200/80'
+                  : isPending
+                  ? 'bg-amber-50/40 border-amber-200/80'
+                  : 'bg-gray-50/80 hover:bg-gray-100/80 border-gray-200/60'
+              }`}
+            >
+              <div className="flex items-center gap-3.5 mb-3 sm:mb-0">
+                <div
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 font-bold ${
+                    isPaid
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : isPending
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-2xl">
+                    {isCanceled ? 'block' : 'sports_soccer'}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-headline text-sm font-bold text-[#111c2d]">
+                      {booking.customerName}
+                    </h4>
+                    {booking.customerPhone && (
+                      <a
+                        href={`https://wa.me/${booking.customerPhone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-600 hover:text-emerald-700 p-0.5"
+                        title="Enviar WhatsApp"
+                      >
+                        <span className="material-symbols-outlined text-sm">chat</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-gray-600 font-medium mt-0.5">
+                    {booking.courtName} • <span className="font-bold text-[#111c2d]">{booking.timeSlot}</span>
+                  </p>
+
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                    <span>{booking.dateDisplay || 'Hoy'}</span>
+                    <span>•</span>
+                    <span className="font-bold text-gray-700">${booking.price.toLocaleString('es-AR')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Actions & Dropdown */}
+              <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200/60 justify-end">
+                {/* Status selector buttons */}
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => toggleBookingStatus(booking.id, 'Pagado')}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      isPaid
+                        ? 'bg-emerald-500 text-white shadow-xs'
+                        : 'text-gray-500 hover:text-emerald-700 hover:bg-emerald-50'
+                    }`}
+                  >
+                    Pagado
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleBookingStatus(booking.id, 'Pendiente')}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      isPending
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-gray-500 hover:text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    Pendiente
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleBookingStatus(booking.id, 'Cancelado')}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                      isCanceled
+                        ? 'bg-red-500 text-white shadow-xs'
+                        : 'text-gray-500 hover:text-red-700 hover:bg-red-50'
+                    }`}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+      </div>
+    </div>
+  );
+};
