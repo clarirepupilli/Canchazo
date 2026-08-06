@@ -21,6 +21,7 @@ export interface TimeSlot {
 
 export interface Court {
   id: string;
+  ownerId?: string;
   name: string;
   complexName: string;
   sport: SportType;
@@ -48,6 +49,7 @@ export interface Court {
 
 export interface Booking {
   id: string;
+  userId?: string;
   courtId: string;
   courtName: string;
   complexName: string;
@@ -66,6 +68,7 @@ export interface Booking {
 
 export interface Review {
   id: string;
+  userId?: string;
   author: string;
   avatarLetter: string;
   rating: number;

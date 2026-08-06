@@ -2,22 +2,85 @@ rules_version = '2';
 
 // ============================================================
 // Firestore rules — CANCHAZO
-// ESTADO ACTUAL: modo dev-open POR COLECCIÓN para desarrollo rápido.
-// EXPIRA: 2026-09-05. Después de esa fecha TODO queda denegado.
+// Fase de autenticación: acceso por rol (users/{uid}.role).
 //
-// TODO(hardening) — fase de auth:
-//  - courts: lectura pública; escrituras solo para owner autenticado
-//    (uidOwner = users/{uid}.role == 'owner').
-//  - bookings: lectura pública; escrituras autenticadas; solo el owner
-//    del complejo puede cambiar estados (users/{uid}.role == 'owner').
-//  - reviews: lectura pública; escrituras de jugadores autenticados.
+//  - users:  lectura propia (o de todos para owners, listado en panel);
+//            el rol lo otorgan owners (promote); la cuenta propia NO
+//            puede auto-promoverse.
+//  - courts: lectura pública (catálogo); escritura solo de owners.
+//  - bookings: lectura solo autenticada (la disponibilidad se deriva
+//            del stream de reservas en el cliente); creación con
+//            userId propio; estados los cambia el owner o el propio
+//            jugador (Cancelado/Pendiente).
+//  - reviews: lectura pública; escritura de jugadores autenticados;
+//            reply del owner.
+//
+// Limitación conocida: por la disponibilidad derivada del lado del
+// cliente, cualquier usuario autenticado puede leer docs de bookings.
+// Si se necesita privacidad real, mover la disponibilidad al servidor.
 // ============================================================
 service cloud.firestore {
   match /databases/{database}/documents {
-    function devWindow() { return request.time < timestamp.date(2026, 9, 5); }
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    match /courts/{id} { allow read, write: if devWindow(); }
-    match /bookings/{id} { allow read, write: if devWindow(); }
-    match /reviews/{id} { allow read, write: if devWindow(); }
+    function isOwner(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'owner';
+    }
+
+    function isOwnerOf() {
+      return isSignedIn() && isOwner(request.auth.uid) && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isOwner(request.auth.uid));
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'player'
+        && request.resource.data.keys().hasOnly(['role', 'email', 'displayName', 'photoURL', 'createdAt']);
+      allow update: if isSignedIn() && (
+        // Owner promoting any account.
+        (isOwner(request.auth.uid) && request.resource.data.role == 'owner')
+        ||
+        // Self edit of profile info only (role never self-changeable).
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']))
+      );
+      allow delete: if false;
+    }
+
+    match /courts/{courtId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(request.auth.uid)
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwnerOf();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        // Owners register manual bookings with any payment state; players can
+        // only create pending bookings (never pre-mark themselves as paid).
+        && (isOwner(request.auth.uid) || request.resource.data.status == 'Pendiente');
+      allow update: if isSignedIn() && (
+        isOwner(request.auth.uid)
+        ||
+        // Player cancels/reactivates their own booking (status only).
+        (request.auth.uid == resource.data.userId
+          && request.resource.data.status in ['Cancelado', 'Pendiente']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
+      allow delete: if isSignedIn() && isOwner(request.auth.uid);
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(request.auth.uid);
+      allow delete: if isSignedIn() && isOwner(request.auth.uid);
+    }
   }
 }

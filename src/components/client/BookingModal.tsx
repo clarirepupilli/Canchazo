@@ -12,7 +12,7 @@ interface BookingModalProps {
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, date, onClose, onSuccess }) => {
-  const { addBooking, showToast } = useApp();
+  const { addBooking, authUser, setShowAuthModal, showToast } = useApp();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
@@ -20,6 +20,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
   const dateDisplay = formatDateDisplay(date);
 
   const handleConfirmReservation = () => {
+    if (!authUser) {
+      setShowAuthModal(true);
+      showToast('Iniciá sesión para confirmar tu reserva.');
+      return;
+    }
     if (!customerName.trim()) {
       showToast('Por favor, ingresa tu nombre y apellido.');
       return;

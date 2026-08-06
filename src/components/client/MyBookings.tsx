@@ -2,7 +2,8 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const MyBookings: React.FC = () => {
-  const { bookings, toggleBookingStatus, showToast } = useApp();
+  const { bookings, authUser, setShowAuthModal, toggleBookingStatus, showToast } = useApp();
+  const myBookings = authUser ? bookings.filter((b) => b.userId === authUser.uid) : [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
@@ -15,7 +16,25 @@ export const MyBookings: React.FC = () => {
         </p>
       </div>
 
-      {bookings.length === 0 ? (
+      {!authUser ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-sm space-y-4">
+          <span className="material-symbols-outlined text-5xl text-[#10b981]">account_circle</span>
+          <h3 className="font-headline text-lg font-bold text-[#111c2d]">
+            Iniciá sesión para ver tus reservas
+          </h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+            Tus turnos quedan asociados a tu cuenta. Accedé con Google para consultarlos.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowAuthModal(true)}
+            className="inline-flex items-center gap-2 bg-[#10b981] hover:bg-[#0e9f6f] text-white px-5 py-2.5 rounded-full font-headline text-sm font-bold transition-all active:scale-95 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-lg">login</span>
+            <span>Iniciar Sesión</span>
+          </button>
+        </div>
+      ) : myBookings.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-sm space-y-3">
           <span className="material-symbols-outlined text-5xl text-[#10b981]">event_busy</span>
           <h3 className="font-headline text-lg font-bold text-[#111c2d]">
@@ -27,7 +46,7 @@ export const MyBookings: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => (
+          {myBookings.map((booking) => (
             <div
               key={booking.id}
               className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"

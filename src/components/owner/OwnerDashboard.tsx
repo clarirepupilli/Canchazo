@@ -4,6 +4,7 @@ import { BookingsList } from './BookingsList';
 import { OwnerReviews } from './OwnerReviews';
 import { NewBookingModal } from './NewBookingModal';
 import { MyComplexForm } from './MyComplexForm';
+import { UsersList } from './UsersList';
 
 interface OwnerDashboardProps {
   activeOwnerSubTab: string;
@@ -14,8 +15,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   activeOwnerSubTab,
   setActiveOwnerSubTab,
 }) => {
-  const { currentOwnerComplexName } = useApp();
+  const { currentOwnerComplexName, authUser } = useApp();
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
+  const managerName = authUser?.displayName || 'Arena Manager';
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#263143]">
@@ -24,15 +26,21 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         {/* Manager Profile Header */}
         <div className="px-6 mb-8 flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#6ffbbe] shadow-sm shrink-0">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDwxHXSt7KvrjRK312LFZ5dZFrkYOkSxDjYpFG12BckhubrpG5P1N5jGiOag75Ju3AVibA2N6PLPGCNhsHjEyYL40r_CuEuqVcqbiPozQB5kwAd4_6Om2eJ2UToHbbPbtcZSynTRfYRWltAeTzEl7S6oxJbOo7kWJfHbxkT7kNsch5IXHYf5teMeQ-GzKuUcyGvZQ-gK0aw9jXiQDa2KgKIEtZ7sH0juUqWKZbo_-lqadtaKpP53A"
-              alt="Arena Manager"
-              className="w-full h-full object-cover"
-            />
+            {authUser?.photoURL ? (
+              <img
+                src={authUser.photoURL}
+                alt={managerName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#10b981] flex items-center justify-center text-white font-headline font-bold">
+                {managerName.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
           <div>
             <h2 className="font-headline text-base font-bold text-[#006c49] dark:text-[#6ffbbe]">
-              Arena Manager
+              {managerName}
             </h2>
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-300">
               {currentOwnerComplexName}
@@ -80,6 +88,19 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
             <span className="material-symbols-outlined">rate_review</span>
             <span>Reseñas</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerSubTab('users')}
+            className={`flex items-center gap-3 font-headline text-xs font-bold rounded-xl p-3 transition-all ${
+              activeOwnerSubTab === 'users'
+                ? 'bg-[#bdd6ff] text-[#445d80] shadow-sm'
+                : 'text-gray-400 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <span className="material-symbols-outlined">group</span>
+            <span>Usuarios</span>
+          </button>
         </nav>
       </aside>
 
@@ -94,6 +115,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   ? 'Mi Complejo'
                   : activeOwnerSubTab === 'reviews'
                   ? 'Reseñas de Clientes'
+                  : activeOwnerSubTab === 'users'
+                  ? 'Usuarios'
                   : 'Panel de Administración'}
               </h1>
               <p className="text-xs sm:text-sm font-semibold text-[#6ffbbe]">
@@ -121,6 +144,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
             <div className="max-w-3xl mx-auto">
               <OwnerReviews />
             </div>
+          ) : activeOwnerSubTab === 'users' ? (
+            <UsersList />
           ) : (
             /* Main Panel Bento Grid Layout */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
