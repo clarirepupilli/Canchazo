@@ -1,9 +1,23 @@
 {
   "project": "canchazo-app",
+  "auth": {
+    "providers": {
+      "anonymous": false,
+      "emailLinkSignIn": false,
+      "emailPassword": false,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Canchazo",
+        "supportEmail": "clarirepupilli0922@gmail.com",
+        "authorizedDomains": ["localhost", "canchazo-app.web.app", "canchazo-app.firebaseapp.com"]
+      }
+    }
+  },
   "firestore": {
     "rules": "firestore.rules"
   },
-  "storage": {
-    "rules": "storage.rules"
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
   }
 }
