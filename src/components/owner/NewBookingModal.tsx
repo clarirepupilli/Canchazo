@@ -1,44 +1,67 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BookingStatus, PaymentMethod } from '../../types';
 import { toISODate, formatDateDisplay } from '../../utils/date';
+import { computeAvailability } from '../../services/availability';
 
 interface NewBookingModalProps {
   onClose: () => void;
 }
 
 export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => {
-  const { addBooking, courts, currentOwnerComplexName } = useApp();
+  const { addBooking, courts, bookings, currentOwnerComplexName } = useApp();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [courtName, setCourtName] = useState(courts[0]?.name || 'Cancha 1');
-  const [timeSlot, setTimeSlot] = useState('18:00 - 19:30');
-  const [price, setPrice] = useState('18000');
+  const [courtName, setCourtName] = useState(courts[0]?.name || '');
+  const [timeSlot, setTimeSlot] = useState('');
+  const [price, setPrice] = useState('');
   const [status, setStatus] = useState<BookingStatus>('Pagado');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
 
-  const selectedCourt = courts.find((c) => c.name === courtName);
+  const selectedCourt = courts.find((c) => c.name === courtName) ?? courts[0] ?? null;
   const todayIso = toISODate(new Date());
   const dateDisplay = formatDateDisplay(todayIso);
+
+  // Only offer slots that are still free for the selected court today,
+  // reusing the same availability derivation the client uses.
+  const availableSlots = selectedCourt
+    ? computeAvailability(selectedCourt.timeSlots, bookings, selectedCourt.id, todayIso).filter(
+        (s) => s.available
+      )
+    : [];
+  const availableKey = availableSlots.map((s) => s.displayTime).join('|');
+
+  // Keep the selected slot and price in sync: the bookings stream arrives
+  // async and slot availability changes live.
+  useEffect(() => {
+    setTimeSlot((current) =>
+      current && availableSlots.some((s) => s.displayTime === current)
+        ? current
+        : availableSlots[0]?.displayTime || ''
+    );
+    setPrice(selectedCourt ? String(selectedCourt.pricePerHour) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCourt?.id, availableKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName) return;
+    if (!timeSlot || !selectedCourt) return;
 
     addBooking({
-      courtId: selectedCourt?.id || courts[0]?.id || 'court-3',
-      courtName,
+      courtId: selectedCourt.id,
+      courtName: selectedCourt.name,
       complexName: currentOwnerComplexName,
       customerName,
       customerPhone,
-      sport: selectedCourt?.sport || 'futbol',
+      sport: selectedCourt.sport,
       date: todayIso,
       dateDisplay,
       timeSlot,
-      price: Number(price) || 18000,
+      price: Number(price) || selectedCourt.pricePerHour,
       paymentMethod,
       status,
-      whatsappNumber: selectedCourt?.whatsappNumber,
+      whatsappNumber: selectedCourt.whatsappNumber,
     });
 
     onClose();
@@ -98,12 +121,12 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
                 Cancha
               </label>
               <select
-                value={courtName}
+                value={selectedCourt?.name || ''}
                 onChange={(e) => setCourtName(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-[#10b981] outline-none bg-white font-medium"
               >
                 {courts.length === 0 ? (
-                  <option value="Cancha 1">Cancha 1</option>
+                  <option value="">Sin canchas registradas</option>
                 ) : (
                   courts.map((court) => (
                     <option key={court.id} value={court.name}>
@@ -121,12 +144,18 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
               <select
                 value={timeSlot}
                 onChange={(e) => setTimeSlot(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-[#10b981] outline-none bg-white font-medium"
+                disabled={availableSlots.length === 0}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-[#10b981] outline-none bg-white font-medium disabled:bg-gray-100 disabled:text-gray-400"
               >
-                <option value="18:00 - 19:30">18:00 - 19:30</option>
-                <option value="19:30 - 21:00">19:30 - 21:00</option>
-                <option value="21:00 - 22:30">21:00 - 22:30</option>
-                <option value="22:30 - 00:00">22:30 - 00:00</option>
+                {availableSlots.length === 0 ? (
+                  <option value="">Sin turnos disponibles hoy</option>
+                ) : (
+                  availableSlots.map((slot) => (
+                    <option key={slot.id} value={slot.displayTime}>
+                      {slot.displayTime}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
@@ -159,6 +188,12 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
             </div>
           </div>
 
+          {availableSlots.length === 0 && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 font-medium">
+              Hoy no quedan turnos disponibles para esta cancha.
+            </p>
+          )}
+
           <div className="pt-3 flex gap-2">
             <button
               type="button"
@@ -169,7 +204,8 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#10b981] hover:bg-[#0e9f6f] text-white py-3 rounded-xl text-xs font-bold shadow-md"
+              disabled={!timeSlot || !selectedCourt}
+              className="flex-1 bg-[#10b981] hover:bg-[#0e9f6f] text-white py-3 rounded-xl text-xs font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Guardar Reserva
             </button>
