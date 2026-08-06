@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CourtCard } from './CourtCard';
 import { CourtFilters } from './CourtFilters';
 import { BookingModal } from './BookingModal';
+import { computeAvailability } from '../../services/availability';
 import { Court } from '../../types';
 
 interface CourtSearchProps {
@@ -14,12 +15,26 @@ const parseTimeToMinutes = (time: string): number => {
   return hours * 60 + minutes;
 };
 
+const toISODate = (date: Date): string => date.toISOString().split('T')[0];
+
 export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false }) => {
-  const { courts, filters, setFilters, setShowFilterModal, favorites } = useApp();
+  const { courts, bookings, filters, setFilters, setShowFilterModal, favorites } = useApp();
+  const [selectedDate, setSelectedDate] = useState<string>(() => toISODate(new Date()));
   const [bookingTarget, setBookingTarget] = useState<{ court: Court; timeSlot: string } | null>(null);
 
-  // Filter courts based on state
-  const filteredCourts = courts.filter((court) => {
+  // Courts carry template slots only; availability is derived from bookings for
+  // the selected date (see computeAvailability).
+  const enrichedCourts = useMemo(
+    () =>
+      courts.map((court) => ({
+        ...court,
+        timeSlots: computeAvailability(court.timeSlots, bookings, court.id, selectedDate),
+      })),
+    [courts, bookings, selectedDate]
+  );
+
+  // Filter courts based on state (against the date-enriched courts)
+  const filteredCourts = enrichedCourts.filter((court) => {
     // Favorites filter
     if (onlyFavorites && !favorites.includes(court.id)) {
       return false;
@@ -119,6 +134,27 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
             <span className="material-symbols-outlined text-lg">tune</span>
             <span className="hidden sm:inline">Filtros</span>
           </button>
+        </div>
+
+        {/* Availability Date Selector */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <label
+            htmlFor="availability-date"
+            className="flex items-center gap-2 text-xs font-bold text-[#111c2d] uppercase tracking-wider"
+          >
+            <span className="material-symbols-outlined text-lg text-[#10b981]">calendar_month</span>
+            <span>Fecha</span>
+          </label>
+          <input
+            id="availability-date"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-[#111c2d] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+          />
+          <p className="text-[11px] text-gray-500 font-medium">
+            Los horarios muestran disponibilidad para la fecha seleccionada
+          </p>
         </div>
       </section>
 

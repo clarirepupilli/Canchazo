@@ -2,16 +2,22 @@ rules_version = '2';
 
 // ============================================================
 // Firestore rules — CANCHAZO
-// ESTADO ACTUAL: modo de prueba (open) para desarrollo rápido.
+// ESTADO ACTUAL: modo dev-open POR COLECCIÓN para desarrollo rápido.
 // EXPIRA: 2026-09-05. Después de esa fecha TODO queda denegado.
-// TODO(hardening): reemplazar por reglas por colección
-// (lectura pública para courts/reviews, escrituras autenticadas,
-// dueño = users/{uid}.role == 'owner', etc.)
+//
+// TODO(hardening) — fase de auth:
+//  - courts: lectura pública; escrituras solo para owner autenticado
+//    (uidOwner = users/{uid}.role == 'owner').
+//  - bookings: lectura pública; escrituras autenticadas; solo el owner
+//    del complejo puede cambiar estados (users/{uid}.role == 'owner').
+//  - reviews: lectura pública; escrituras de jugadores autenticados.
 // ============================================================
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 9, 5);
-    }
+    function devWindow() { return request.time < timestamp.date(2026, 9, 5); }
+
+    match /courts/{id} { allow read, write: if devWindow(); }
+    match /bookings/{id} { allow read, write: if devWindow(); }
+    match /reviews/{id} { allow read, write: if devWindow(); }
   }
 }
