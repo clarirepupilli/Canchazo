@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BookingStatus, PaymentMethod } from '../../types';
+import { toISODate, formatDateDisplay } from '../../utils/date';
 
 interface NewBookingModalProps {
   onClose: () => void;
@@ -17,11 +18,8 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
 
   const selectedCourt = courts.find((c) => c.name === courtName);
-  const dateDisplay = new Date().toLocaleDateString('es-AR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  const todayIso = toISODate(new Date());
+  const dateDisplay = formatDateDisplay(todayIso);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +32,7 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
       customerName,
       customerPhone,
       sport: selectedCourt?.sport || 'futbol',
-      date: new Date().toISOString().split('T')[0],
+      date: todayIso,
       dateDisplay,
       timeSlot,
       price: Number(price) || 18000,
