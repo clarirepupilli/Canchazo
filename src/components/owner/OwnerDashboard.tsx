@@ -5,7 +5,6 @@ import { BookingsList } from './BookingsList';
 import { OwnerReviews } from './OwnerReviews';
 import { NewBookingModal } from './NewBookingModal';
 import { MyComplexForm } from './MyComplexForm';
-import { RevenueChart } from './RevenueChart';
 
 interface OwnerDashboardProps {
   activeOwnerSubTab: string;
@@ -146,9 +145,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 />
               </div>
 
-              {/* Right Column (Span 4): Revenue & Reviews */}
+              {/* Right Column (Span 4): Reviews */}
               <div className="lg:col-span-4 flex flex-col gap-6">
-                <RevenueChart />
                 <OwnerReviews />
               </div>
             </div>
