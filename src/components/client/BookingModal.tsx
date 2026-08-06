@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Court, PaymentMethod } from '../../types';
+import { formatDateDisplay } from '../../utils/date';
 
 interface BookingModalProps {
   court: Court;
@@ -16,13 +17,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
 
-  // Build a local-time Date from the ISO date to avoid UTC day shifts.
-  const [year, month, day] = date.split('-').map(Number);
-  const dateDisplay = new Date(year, month - 1, day).toLocaleDateString('es-AR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  const dateDisplay = formatDateDisplay(date);
 
   const handleConfirmReservation = () => {
     if (!customerName.trim()) {

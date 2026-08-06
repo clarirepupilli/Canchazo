@@ -5,6 +5,7 @@ import { CourtFilters } from './CourtFilters';
 import { BookingModal } from './BookingModal';
 import { computeAvailability } from '../../services/availability';
 import { Court } from '../../types';
+import { toISODate } from '../../utils/date';
 
 interface CourtSearchProps {
   onlyFavorites?: boolean;
@@ -13,13 +14,6 @@ interface CourtSearchProps {
 const parseTimeToMinutes = (time: string): number => {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
-};
-
-const toISODate = (date: Date): string => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 };
 
 export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false }) => {
