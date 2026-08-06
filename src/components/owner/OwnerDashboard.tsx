@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { WeeklyCalendar } from './WeeklyCalendar';
 import { BookingsList } from './BookingsList';
 import { OwnerReviews } from './OwnerReviews';
 import { NewBookingModal } from './NewBookingModal';
@@ -16,14 +15,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   setActiveOwnerSubTab,
 }) => {
   const { currentOwnerComplexName } = useApp();
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
   const [showNewBookingModal, setShowNewBookingModal] = useState(false);
-
-  const handleSelectDay = (day: number | null, month?: number) => {
-    setSelectedCalendarDay(day);
-    setSelectedMonth(day === null ? undefined : month);
-  };
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#263143]">
@@ -132,17 +124,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
           ) : (
             /* Main Panel Bento Grid Layout */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column (Span 8): Month Calendar & Bookings List */}
+              {/* Left Column (Span 8): Bookings List */}
               <div className="lg:col-span-8 flex flex-col gap-6">
-                <WeeklyCalendar
-                  selectedDay={selectedCalendarDay}
-                  onSelectDay={handleSelectDay}
-                />
-                <BookingsList
-                  selectedDay={selectedCalendarDay}
-                  selectedMonth={selectedMonth}
-                  onClearDayFilter={() => handleSelectDay(null)}
-                />
+                <BookingsList />
               </div>
 
               {/* Right Column (Span 4): Reviews */}

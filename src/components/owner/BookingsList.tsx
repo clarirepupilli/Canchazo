@@ -1,58 +1,102 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { BookingStatus } from '../../types';
+import { formatDateDisplay } from '../../utils/date';
 
-interface BookingsListProps {
-  selectedDay?: number | null;
-  selectedMonth?: number;
-  onClearDayFilter?: () => void;
-}
+const sortByDateTime = (a: { date: string; timeSlot: string }, b: { date: string; timeSlot: string }) => {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  return a.timeSlot < b.timeSlot ? -1 : a.timeSlot > b.timeSlot ? 1 : 0;
+};
 
-export const BookingsList: React.FC<BookingsListProps> = ({ selectedDay, selectedMonth, onClearDayFilter }) => {
+export const BookingsList: React.FC = () => {
   const { bookings, toggleBookingStatus } = useApp();
-  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [dayFilter, setDayFilter] = useState<string>('all');
+  const [slotFilter, setSlotFilter] = useState<string>('all');
 
-  // Filter bookings if selectedDay is set
-  const displayList = selectedDay
-    ? bookings.filter((b) => {
-        if (b.date) {
-          const parts = b.date.split('-');
-          if (parts.length === 3) {
-            const matchesDay = parseInt(parts[2], 10) === selectedDay;
-            const matchesMonth = selectedMonth === undefined || parseInt(parts[1], 10) === selectedMonth;
-            return matchesDay && matchesMonth;
-          }
-        }
-        // Fallback matching
-        return true;
-      })
-    : bookings;
+  const availableDays = useMemo(
+    () => [...new Set(bookings.map((b) => b.date))].sort().reverse(),
+    [bookings]
+  );
+  const availableSlots = useMemo(
+    () => [...new Set(bookings.map((b) => b.timeSlot))].sort(),
+    [bookings]
+  );
+
+  const displayList = useMemo(() => {
+    const filtered = bookings.filter(
+      (b) =>
+        (dayFilter === 'all' || b.date === dayFilter) &&
+        (slotFilter === 'all' || b.timeSlot === slotFilter)
+    );
+    return [...filtered].sort(sortByDateTime);
+  }, [bookings, dayFilter, slotFilter]);
+
+  const hasActiveFilter = dayFilter !== 'all' || slotFilter !== 'all';
+
+  const clearFilters = () => {
+    setDayFilter('all');
+    setSlotFilter('all');
+  };
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
         <div>
           <h3 className="font-headline text-base sm:text-lg font-extrabold text-[#006c49] flex items-center gap-2">
             <span className="material-symbols-outlined text-xl">event_available</span>
-            <span>
-              {selectedDay ? `Turnos del Día ${selectedDay}` : 'Próximas Reservas'}
-            </span>
+            <span>Reservas</span>
           </h3>
           <p className="text-xs text-gray-500 font-medium mt-0.5">
-            Administra los turnos de tu complejo y su estado de pago
+            {bookings.length === 0
+              ? 'Administra los turnos de tu complejo y su estado de pago'
+              : `Mostrando ${displayList.length} de ${bookings.length} reservas`}
           </p>
         </div>
 
-        {selectedDay && (
-          <button
-            type="button"
-            onClick={onClearDayFilter}
-            className="text-xs font-bold text-[#006c49] hover:underline flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60 self-start sm:self-auto"
-          >
-            <span>Día {selectedDay} (Ver todas)</span>
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        )}
+        {/* Day & Time Slot Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500">
+            <span className="material-symbols-outlined text-base">calendar_today</span>
+            <select
+              value={dayFilter}
+              onChange={(e) => setDayFilter(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-[#111c2d] focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+            >
+              <option value="all">Todos los días</option>
+              {availableDays.map((d) => (
+                <option key={d} value={d}>
+                  {formatDateDisplay(d)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500">
+            <span className="material-symbols-outlined text-base">schedule</span>
+            <select
+              value={slotFilter}
+              onChange={(e) => setSlotFilter(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-[#111c2d] focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+            >
+              <option value="all">Todos los horarios</option>
+              {availableSlots.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-bold text-[#006c49] hover:underline flex items-center gap-1 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/60"
+            >
+              <span>Ver todas</span>
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -60,14 +104,14 @@ export const BookingsList: React.FC<BookingsListProps> = ({ selectedDay, selecte
           <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-2">
             <span className="material-symbols-outlined text-3xl text-gray-400">event_busy</span>
             <p className="text-xs font-semibold text-gray-600">
-              {selectedDay
-                ? `No hay reservas registradas para el día ${selectedDay}.`
+              {hasActiveFilter
+                ? 'No hay reservas para el día u horario seleccionado.'
                 : 'Aún no hay reservas registradas en el sistema.'}
             </p>
-            {selectedDay && (
+            {hasActiveFilter && (
               <button
                 type="button"
-                onClick={onClearDayFilter}
+                onClick={clearFilters}
                 className="text-xs font-bold text-[#006c49] hover:underline"
               >
                 Ver todas las reservas
@@ -130,7 +174,7 @@ export const BookingsList: React.FC<BookingsListProps> = ({ selectedDay, selecte
                   </p>
 
                   <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
-                    <span>{booking.dateDisplay || 'Hoy'}</span>
+                    <span>{booking.dateDisplay || formatDateDisplay(booking.date)}</span>
                     <span>•</span>
                     <span className="font-bold text-gray-700">${booking.price.toLocaleString('es-AR')}</span>
                   </div>
