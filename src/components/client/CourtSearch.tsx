@@ -15,12 +15,18 @@ const parseTimeToMinutes = (time: string): number => {
   return hours * 60 + minutes;
 };
 
-const toISODate = (date: Date): string => date.toISOString().split('T')[0];
+const toISODate = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false }) => {
   const { courts, bookings, filters, setFilters, setShowFilterModal, favorites } = useApp();
   const [selectedDate, setSelectedDate] = useState<string>(() => toISODate(new Date()));
-  const [bookingTarget, setBookingTarget] = useState<{ court: Court; timeSlot: string } | null>(null);
+  const todayIso = toISODate(new Date());
+  const [bookingTarget, setBookingTarget] = useState<{ court: Court; timeSlot: string; date: string } | null>(null);
 
   // Courts carry template slots only; availability is derived from bookings for
   // the selected date (see computeAvailability).
@@ -149,6 +155,7 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
             id="availability-date"
             type="date"
             value={selectedDate}
+            min={todayIso}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-[#111c2d] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]"
           />
@@ -185,7 +192,7 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
             <CourtCard
               key={court.id}
               court={court}
-              onSelectBooking={(c, slot) => setBookingTarget({ court: c, timeSlot: slot })}
+              onSelectBooking={(c, slot) => setBookingTarget({ court: c, timeSlot: slot, date: selectedDate })}
             />
           ))}
         </div>
@@ -199,6 +206,7 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
         <BookingModal
           court={bookingTarget.court}
           timeSlot={bookingTarget.timeSlot}
+          date={bookingTarget.date}
           onClose={() => setBookingTarget(null)}
           onSuccess={() => setBookingTarget(null)}
         />

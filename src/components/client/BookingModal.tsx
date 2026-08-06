@@ -5,17 +5,20 @@ import { Court, PaymentMethod } from '../../types';
 interface BookingModalProps {
   court: Court;
   timeSlot: string;
+  date: string; // YYYY-MM-DD
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, onClose, onSuccess }) => {
+export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, date, onClose, onSuccess }) => {
   const { addBooking, showToast } = useApp();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
 
-  const todayDisplay = new Date().toLocaleDateString('es-AR', {
+  // Build a local-time Date from the ISO date to avoid UTC day shifts.
+  const [year, month, day] = date.split('-').map(Number);
+  const dateDisplay = new Date(year, month - 1, day).toLocaleDateString('es-AR', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -39,8 +42,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, onC
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       sport: court.sport,
-      date: new Date().toISOString().split('T')[0],
-      dateDisplay: todayDisplay,
+      date,
+      dateDisplay,
       timeSlot,
       price: court.pricePerHour,
       paymentMethod,
@@ -135,7 +138,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, onC
                 <span className="material-symbols-outlined text-[#10b981] text-2xl">calendar_month</span>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Fecha</span>
-                  <span className="text-xs text-[#111c2d] font-bold">{todayDisplay}</span>
+                  <span className="text-xs text-[#111c2d] font-bold">{dateDisplay}</span>
                 </div>
               </div>
 
