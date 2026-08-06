@@ -5,10 +5,11 @@ import { AddReviewModal } from './AddReviewModal';
 
 interface CourtCardProps {
   court: Court;
+  locked?: boolean;
   onSelectBooking: (court: Court, timeSlot: string) => void;
 }
 
-export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) => {
+export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onSelectBooking }) => {
   const { favorites, toggleFavorite } = useApp();
   const isFav = favorites.includes(court.id);
   const [showAddReview, setShowAddReview] = useState(false);
@@ -64,11 +65,15 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) 
   };
 
   const handleSlotClick = (slot: TimeSlot) => {
-    if (!slot.available) return;
+    if (locked || !slot.available) return;
     setSelectedSlot(slot.displayTime);
   };
 
   const handleReserveClick = () => {
+    if (locked) {
+      onSelectBooking(court, '');
+      return;
+    }
     const slotToBook = selectedSlot || court.timeSlots.find((ts) => ts.available)?.displayTime;
     if (!slotToBook) {
       alert('No hay horarios disponibles para esta cancha.');
@@ -234,7 +239,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) 
           {/* Available Time Slots Grid */}
           <div className="pt-1">
             <p className="font-headline text-xs font-bold text-[#111c2d] mb-2 uppercase tracking-wider">
-              Horarios Disponibles
+              {locked ? 'Disponibilidad' : 'Horarios Disponibles'}
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
               {court.timeSlots.map((ts) => {
@@ -246,7 +251,9 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) 
                     disabled={!ts.available}
                     onClick={() => handleSlotClick(ts)}
                     className={`text-center rounded-lg py-1.5 px-1 flex flex-col items-center transition-all border ${
-                      !ts.available
+                      locked
+                        ? 'bg-gray-50 border-gray-200 text-gray-400 opacity-70 cursor-not-allowed'
+                        : !ts.available
                         ? 'bg-red-50 border-red-200 text-red-400 opacity-60 cursor-not-allowed'
                         : isSelected
                         ? 'bg-[#10b981] border-[#10b981] text-white shadow-md scale-105'
@@ -256,14 +263,25 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) 
                     <span className="font-headline text-xs font-bold">{ts.time}</span>
                     <span
                       className={`text-[9px] font-bold uppercase tracking-wider ${
-                        !ts.available
+                        locked
+                          ? 'text-gray-400 flex items-center gap-0.5'
+                          : !ts.available
                           ? 'text-red-600'
                           : isSelected
                           ? 'text-white'
                           : 'text-[#10b981]'
                       }`}
                     >
-                      {ts.available ? 'Libre' : 'Ocupado'}
+                      {locked ? (
+                        <>
+                          <span className="material-symbols-outlined text-[10px]">lock</span>
+                          <span>Sesión</span>
+                        </>
+                      ) : ts.available ? (
+                        'Libre'
+                      ) : (
+                        'Ocupado'
+                      )}
                     </span>
                   </button>
                 );
@@ -279,8 +297,8 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, onSelectBooking }) 
             onClick={handleReserveClick}
             className="w-full sm:w-auto bg-[#10b981] hover:bg-[#0e9f6f] active:scale-95 text-white font-headline text-xs font-bold py-2.5 px-8 rounded-full transition-all shadow-sm flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-sm">event_available</span>
-            <span>RESERVAR</span>
+            <span className="material-symbols-outlined text-sm">{locked ? 'lock' : 'event_available'}</span>
+            <span>{locked ? 'INICIAR SESIÓN' : 'RESERVAR'}</span>
           </button>
         </div>
       </div>

@@ -55,7 +55,7 @@ function recomputeCourtRating(
  * (see computeAvailability). Mutations are optimistic with rollback on write
  * failure.
  */
-export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
+export function useFirestoreStore(showToast: (msg: string) => void, uid: string | null): DataStore {
   if (!db || !isFirebaseConfigured) {
     throw new Error('useFirestoreStore requires Firebase configuration');
   }
@@ -68,6 +68,8 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
   const toast = showToast;
 
   // Realtime subscriptions + seed + one-time migration.
+  // `uid` drives re-subscription: Firestore closes the bookings listener when
+  // the session ends (permission denied), so signing back in must re-attach it.
   useEffect(() => {
     // One-time migration of pre-Firestore localStorage data. Runs on mount
     // regardless of the courts snapshot so local data is never stranded when
@@ -100,9 +102,20 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
       }
     );
 
-    const bookingsUnsub = onSnapshot(collection(firestore, 'bookings'), (snapshot) => {
-      setBookingsState(snapshot.docs.map((d) => toBooking(d.id, d.data())));
-    });
+    // Availability is derived from the full bookings stream, so the client
+    // needs booking reads (rules require an authenticated session). Guests
+    // are denied by rules and see an empty list until they sign in.
+    const bookingsUnsub = onSnapshot(
+      collection(firestore, 'bookings'),
+      (snapshot) => {
+        setBookingsState(snapshot.docs.map((d) => toBooking(d.id, d.data())));
+      },
+      (error) => {
+        setBookingsState([]);
+        // eslint-disable-next-line no-console
+        console.error('[canchazo] bookings subscription error', error);
+      }
+    );
 
     const reviewsUnsub = onSnapshot(collection(firestore, 'reviews'), (snapshot) => {
       setReviewsState(snapshot.docs.map((d) => toReview(d.id, d.data())));
@@ -113,20 +126,22 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
       bookingsUnsub();
       reviewsUnsub();
     };
-  }, [firestore, toast]);
+  }, [firestore, toast, uid]);
 
   const addCourt = useCallback(
     (newCourt: Court) => {
-      setCourtsState((prev) => [newCourt, ...prev]);
-      toast(`¡Complejo "${newCourt.complexName}" registrado con éxito!`);
-      void setDoc(doc(collection(firestore, 'courts'), newCourt.id), toCourtDoc(newCourt)).catch(
-        () => {
-          setCourtsState((prev) => prev.filter((c) => c.id !== newCourt.id));
-          toast('Error al guardar el complejo. Intentá de nuevo.');
-        }
-      );
+      const courtWithOwner: Court = uid ? { ...newCourt, ownerId: uid } : newCourt;
+      setCourtsState((prev) => [courtWithOwner, ...prev]);
+      toast(`¡Complejo "${courtWithOwner.complexName}" registrado con éxito!`);
+      void setDoc(
+        doc(collection(firestore, 'courts'), courtWithOwner.id),
+        toCourtDoc(courtWithOwner)
+      ).catch(() => {
+        setCourtsState((prev) => prev.filter((c) => c.id !== courtWithOwner.id));
+        toast('Error al guardar el complejo. Intentá de nuevo.');
+      });
     },
-    [firestore, toast]
+    [firestore, toast, uid]
   );
 
   const addBooking = useCallback(
@@ -134,6 +149,7 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
       const newBooking: Booking = {
         ...bookingData,
         id: 'b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        userId: uid ?? undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -162,7 +178,7 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
 
       return newBooking;
     },
-    [firestore, toast]
+    [firestore, toast, uid]
   );
 
   const toggleBookingStatus = useCallback(
@@ -205,6 +221,7 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
       const authorName = data.author.trim() || 'Jugador Canchazo';
       const newReview: Review = {
         id: 'rev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        userId: uid ?? undefined,
         author: authorName,
         avatarLetter: authorName.charAt(0).toUpperCase(),
         rating: data.rating,
@@ -254,7 +271,7 @@ export function useFirestoreStore(showToast: (msg: string) => void): DataStore {
         }
       })();
     },
-    [courts, firestore, toast]
+    [courts, firestore, toast, uid]
   );
 
   const addReviewReply = useCallback(

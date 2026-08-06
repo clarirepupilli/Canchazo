@@ -17,10 +17,14 @@ const parseTimeToMinutes = (time: string): number => {
 };
 
 export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false }) => {
-  const { courts, bookings, filters, setFilters, setShowFilterModal, favorites } = useApp();
+  const { courts, bookings, filters, setFilters, setShowFilterModal, favorites, authUser, setShowAuthModal } = useApp();
   const [selectedDate, setSelectedDate] = useState<string>(() => toISODate(new Date()));
   const todayIso = toISODate(new Date());
   const [bookingTarget, setBookingTarget] = useState<{ court: Court; timeSlot: string; date: string } | null>(null);
+
+  // Guests cannot read bookings (security rules), so real availability is
+  // unknown. Mask every slot as locked instead of faking "available".
+  const guest = !authUser;
 
   // Courts carry template slots only; availability is derived from bookings for
   // the selected date (see computeAvailability).
@@ -28,9 +32,11 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
     () =>
       courts.map((court) => ({
         ...court,
-        timeSlots: computeAvailability(court.timeSlots, bookings, court.id, selectedDate),
+        timeSlots: guest
+          ? court.timeSlots.map((ts) => ({ ...ts, available: false }))
+          : computeAvailability(court.timeSlots, bookings, court.id, selectedDate),
       })),
-    [courts, bookings, selectedDate]
+    [courts, bookings, selectedDate, guest]
   );
 
   // Filter courts based on state (against the date-enriched courts)
@@ -57,8 +63,9 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
         return false;
       }
     }
-    // Time category filter: at least one available slot in the selected categories
-    if (filters.timeCategories.length > 0) {
+    // Time category filter: at least one available slot in the selected categories.
+    // Skipped for guests (no availability info, so it would hide every court).
+    if (filters.timeCategories.length > 0 && !guest) {
       const hasMatchingSlot = court.timeSlots.some(
         (ts) => ts.available && filters.timeCategories.includes(ts.category)
       );
@@ -67,7 +74,7 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
       }
     }
     // Exact time filter: at least one available slot whose range contains the time
-    if (filters.exactTime) {
+    if (filters.exactTime && !guest) {
       const exact = parseTimeToMinutes(filters.exactTime);
       const hasMatchingSlot = court.timeSlots.some((ts) => {
         if (!ts.available) return false;
@@ -83,6 +90,14 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
     }
     return true;
   });
+
+  const handleSelectBooking = (court: Court, timeSlot: string) => {
+    if (!authUser) {
+      setShowAuthModal(true);
+      return;
+    }
+    setBookingTarget({ court, timeSlot, date: selectedDate });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
@@ -159,6 +174,26 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
         </div>
       </section>
 
+      {/* Guests can't read bookings (security rules), so availability is hidden
+          behind login instead of showing fake "available" slots. */}
+      {guest && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#001c3a] text-white rounded-2xl px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-lg text-[#10b981]">lock</span>
+            <p className="text-xs font-medium">
+              Iniciá sesión para ver la disponibilidad real de los turnos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAuthModal(true)}
+            className="bg-[#10b981] hover:bg-[#0e9f6f] active:scale-95 text-white font-headline text-xs font-bold py-2 px-5 rounded-full transition-all"
+          >
+            Iniciar sesión
+          </button>
+        </div>
+      )}
+
       {/* Main Content Grid View */}
       {filteredCourts.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-sm space-y-3">
@@ -186,7 +221,8 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
             <CourtCard
               key={court.id}
               court={court}
-              onSelectBooking={(c, slot) => setBookingTarget({ court: c, timeSlot: slot, date: selectedDate })}
+              locked={guest}
+              onSelectBooking={handleSelectBooking}
             />
           ))}
         </div>
