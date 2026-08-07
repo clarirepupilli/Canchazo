@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Court, TimeSlot } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { AddReviewModal } from './AddReviewModal';
+import { CourtReviewsModal } from './CourtReviewsModal';
 
 interface CourtCardProps {
   court: Court;
@@ -13,6 +14,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onS
   const { favorites, toggleFavorite } = useApp();
   const isFav = favorites.includes(court.id);
   const [showAddReview, setShowAddReview] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(
     court.timeSlots.find((ts) => ts.available)?.displayTime || null
   );
@@ -189,14 +191,26 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onS
                 <span className="text-xs font-bold text-[#111c2d]">{court.rating}</span>
                 <span className="text-xs text-[#3c4a42]">({court.reviewCount})</span>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAddReview(true)}
-                  className="ml-auto text-[11px] font-bold text-[#006c49] hover:text-[#10b981] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200/60 transition-colors flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-xs">rate_review</span>
-                  <span>Añadir reseña</span>
-                </button>
+                {/* Review actions: always side by side, never split by wrapping */}
+                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviews(true)}
+                    className="text-[11px] font-bold text-[#445d80] hover:text-[#006c49] bg-[#bdd6ff]/40 hover:bg-[#bdd6ff]/60 px-2.5 py-1 rounded-full border border-[#bdd6ff]/60 transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">reviews</span>
+                    <span>Ver reseñas</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddReview(true)}
+                    className="text-[11px] font-bold text-[#006c49] hover:text-[#10b981] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200/60 transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">rate_review</span>
+                    <span>Añadir reseña</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -306,6 +320,11 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onS
       {/* Add Review Modal */}
       {showAddReview && (
         <AddReviewModal court={court} onClose={() => setShowAddReview(false)} />
+      )}
+
+      {/* Court Reviews Modal */}
+      {showReviews && (
+        <CourtReviewsModal court={court} onClose={() => setShowReviews(false)} />
       )}
     </article>
   );
