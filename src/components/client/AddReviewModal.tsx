@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { Court } from '../../types';
 
@@ -42,7 +43,7 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({ court, onClose }
 
   const activeRating = hoverRating !== null ? hoverRating : rating;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-[#111c2d]/80 backdrop-blur-xs animate-fade-in overflow-y-auto">
       <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl overflow-hidden relative flex flex-col my-6">
         {/* Header */}
@@ -151,6 +152,7 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({ court, onClose }
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
