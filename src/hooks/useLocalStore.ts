@@ -143,6 +143,17 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     [bookings, showToast]
   );
 
+  const deleteBooking = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) return;
+
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      showToast('Reserva eliminada');
+    },
+    [bookings, showToast]
+  );
+
   const addReview = useCallback(
     (data: ReviewInput) => {
       const authorName = data.author.trim() || 'Jugador Canchazo';
@@ -194,6 +205,7 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     bookings,
     addBooking,
     toggleBookingStatus,
+    deleteBooking,
     reviews,
     addReview,
     addReviewReply,

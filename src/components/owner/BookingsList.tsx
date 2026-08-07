@@ -8,7 +8,7 @@ const sortByDateTime = (a: { date: string; timeSlot: string }, b: { date: string
 };
 
 export const BookingsList: React.FC = () => {
-  const { bookings, toggleBookingStatus } = useApp();
+  const { bookings, toggleBookingStatus, deleteBooking } = useApp();
   const [dayFilter, setDayFilter] = useState<string>('all');
   const [slotFilter, setSlotFilter] = useState<string>('all');
 
@@ -221,6 +221,27 @@ export const BookingsList: React.FC = () => {
                     Cancelar
                   </button>
                 </div>
+
+                {/* Delete permanently — only for canceled bookings, so they stop occupying space */}
+                {isCanceled && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `¿Eliminar definitivamente la reserva de ${booking.customerName}? Esta acción no se puede deshacer.`
+                        )
+                      ) {
+                        deleteBooking(booking.id);
+                      }
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                    title="Eliminar reserva"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                    Eliminar
+                  </button>
+                )}
               </div>
             </div>
           );

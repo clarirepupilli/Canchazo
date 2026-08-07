@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -216,6 +217,23 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
     [bookings, firestore, toast]
   );
 
+  const deleteBooking = useCallback(
+    (bookingId: string) => {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) return;
+
+      const previousBookings = bookings;
+      setBookingsState((prev) => prev.filter((b) => b.id !== bookingId));
+      toast('Reserva eliminada');
+
+      void deleteDoc(doc(collection(firestore, 'bookings'), bookingId)).catch(() => {
+        setBookingsState(previousBookings);
+        toast('Error al eliminar la reserva. Intentá de nuevo.');
+      });
+    },
+    [bookings, firestore, toast]
+  );
+
   const addReview = useCallback(
     (data: ReviewInput) => {
       const authorName = data.author.trim() || 'Jugador Canchazo';
@@ -299,6 +317,7 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
     bookings,
     addBooking,
     toggleBookingStatus,
+    deleteBooking,
     reviews,
     addReview,
     addReviewReply,

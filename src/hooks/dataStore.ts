@@ -18,6 +18,7 @@ export interface DataStore {
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   toggleBookingStatus: (bookingId: string, targetStatus?: BookingStatus) => void;
+  deleteBooking: (bookingId: string) => void;
   reviews: Review[];
   addReview: (data: ReviewInput) => void;
   addReviewReply: (reviewId: string, replyText: string) => void;
