@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { BookingsList } from './BookingsList';
 import { OwnerReviews } from './OwnerReviews';
 import { NewBookingModal } from './NewBookingModal';
-import { MyComplexForm } from './MyComplexForm';
+import { MyComplex } from './MyComplex';
 import { UsersList } from './UsersList';
 
 interface OwnerDashboardProps {
@@ -139,7 +139,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
           {/* Conditional Subtab Render */}
           {activeOwnerSubTab === 'complex' ? (
-            <MyComplexForm />
+            <MyComplex />
           ) : activeOwnerSubTab === 'reviews' ? (
             <div className="max-w-3xl mx-auto">
               <OwnerReviews />

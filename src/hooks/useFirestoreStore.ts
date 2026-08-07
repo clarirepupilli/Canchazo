@@ -145,6 +145,26 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
     [firestore, toast, uid]
   );
 
+  const updateCourt = useCallback(
+    (court: Court) => {
+      const previousCourt = courts.find((c) => c.id === court.id);
+      if (!previousCourt) return;
+
+      setCourtsState((prev) => prev.map((c) => (c.id === court.id ? court : c)));
+      toast('Cancha actualizada');
+
+      void updateDoc(doc(collection(firestore, 'courts'), court.id), toCourtDoc(court)).catch(
+        () => {
+          setCourtsState((prev) =>
+            prev.map((c) => (c.id === court.id ? previousCourt : c))
+          );
+          toast('Error al actualizar la cancha. Intentá de nuevo.');
+        }
+      );
+    },
+    [courts, firestore, toast]
+  );
+
   const addBooking = useCallback(
     (bookingData: Omit<Booking, 'id' | 'createdAt'>): Booking => {
       const newBooking: Booking = {
@@ -314,6 +334,7 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
   return {
     courts,
     addCourt,
+    updateCourt,
     bookings,
     addBooking,
     toggleBookingStatus,

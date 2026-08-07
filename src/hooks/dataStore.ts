@@ -15,6 +15,7 @@ export interface ReviewInput {
 export interface DataStore {
   courts: Court[];
   addCourt: (court: Court) => void;
+  updateCourt: (court: Court) => void;
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   toggleBookingStatus: (bookingId: string, targetStatus?: BookingStatus) => void;

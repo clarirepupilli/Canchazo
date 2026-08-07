@@ -68,6 +68,14 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     [showToast]
   );
 
+  const updateCourt = useCallback(
+    (court: Court) => {
+      setCourts((prev) => prev.map((c) => (c.id === court.id ? court : c)));
+      showToast('Cancha actualizada');
+    },
+    [showToast]
+  );
+
   const addBooking = useCallback(
     (bookingData: Omit<Booking, 'id' | 'createdAt'>): Booking => {
       const newBooking: Booking = {
@@ -202,6 +210,7 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
   return {
     courts,
     addCourt,
+    updateCourt,
     bookings,
     addBooking,
     toggleBookingStatus,

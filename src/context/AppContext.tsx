@@ -24,6 +24,7 @@ interface AppContextType {
   setShowAuthModal: (show: boolean) => void;
   courts: Court[];
   addCourt: (court: Court) => void;
+  updateCourt: (court: Court) => void;
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   toggleBookingStatus: (bookingId: string, targetStatus?: BookingStatus) => void;
@@ -89,7 +90,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? useFirestoreStore(showToast, authUser?.uid ?? null)
     : useLocalStore(showToast);
 
-  const { courts, addCourt, bookings, addBooking, toggleBookingStatus, deleteBooking, reviews, addReview, addReviewReply } = dataLayer;
+  const { courts, addCourt, updateCourt, bookings, addBooking, toggleBookingStatus, deleteBooking, reviews, addReview, addReviewReply } = dataLayer;
 
   // Firebase auth session. In local (non-Firebase) mode there is no session,
   // so the app keeps the legacy player view.
@@ -155,6 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setShowAuthModal,
         courts,
         addCourt,
+        updateCourt,
         bookings,
         addBooking,
         toggleBookingStatus,
