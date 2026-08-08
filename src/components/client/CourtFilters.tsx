@@ -110,7 +110,7 @@ export const CourtFilters: React.FC = () => {
               <input
                 type="range"
                 min={1000}
-                max={30000}
+                max={500000}
                 step={1000}
                 value={filters.maxPrice}
                 onChange={handlePriceChange}
@@ -118,7 +118,7 @@ export const CourtFilters: React.FC = () => {
               />
               <div className="flex justify-between text-xs text-gray-500 mt-2 font-medium">
                 <span>$1.000</span>
-                <span>$30.000+</span>
+                <span>$500.000+</span>
               </div>
             </div>
           </section>

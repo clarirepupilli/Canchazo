@@ -9,7 +9,7 @@ import { useFirestoreStore } from '../hooks/useFirestoreStore';
 const DEFAULT_FILTERS: FilterState = {
   sport: 'all',
   minPrice: 1000,
-  maxPrice: 30000,
+  maxPrice: 500000,
   timeCategories: ['morning', 'afternoon', 'night'],
   exactTime: '',
   surfaces: ['sintetico'],

@@ -209,7 +209,6 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose }
               >
                 <option value="futbol">Fútbol 5</option>
                 <option value="padel">Pádel</option>
-                <option value="tenis">Tenis</option>
               </select>
             </div>
 
