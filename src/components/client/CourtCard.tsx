@@ -11,7 +11,7 @@ interface CourtCardProps {
 }
 
 export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onSelectBooking }) => {
-  const { favorites, toggleFavorite } = useApp();
+  const { favorites, toggleFavorite, setShowAuthModal } = useApp();
   const isFav = favorites.includes(court.id);
   const [showAddReview, setShowAddReview] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -204,7 +204,7 @@ export const CourtCard: React.FC<CourtCardProps> = ({ court, locked = false, onS
 
                   <button
                     type="button"
-                    onClick={() => setShowAddReview(true)}
+                    onClick={() => (locked ? setShowAuthModal(true) : setShowAddReview(true))}
                     className="text-[11px] font-bold text-[#006c49] hover:text-[#10b981] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200/60 transition-colors flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-xs">rate_review</span>

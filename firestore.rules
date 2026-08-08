@@ -56,6 +56,10 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(request.auth.uid)
         && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isOwnerOf();
+      // Jugadores que publican reseñas solo actualizan el rating desnormalizado;
+      // el resto de la edición sigue siendo exclusiva del dueño del complejo.
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviewCount']);
     }
 
     match /bookings/{bookingId} {
