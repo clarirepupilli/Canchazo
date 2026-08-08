@@ -260,6 +260,7 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
       const newReview: Review = {
         id: 'rev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
         userId: uid ?? undefined,
+        courtId: data.courtId,
         author: authorName,
         avatarLetter: authorName.charAt(0).toUpperCase(),
         rating: data.rating,

@@ -167,6 +167,7 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
       const authorName = data.author.trim() || 'Jugador Canchazo';
       const newReview: Review = {
         id: 'rev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        courtId: data.courtId,
         author: authorName,
         avatarLetter: authorName.charAt(0).toUpperCase(),
         rating: data.rating,

@@ -2,9 +2,20 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const OwnerReviews: React.FC = () => {
-  const { reviews, addReviewReply } = useApp();
+  const { reviews, courts, authUser, addReviewReply } = useApp();
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  // Owners see reviews only for their own courts. In local (non-Firebase)
+  // mode every court is treated as theirs (same rule as MyComplex).
+  const myCourts = authUser ? courts.filter((c) => c.ownerId === authUser.uid) : courts;
+  const myCourtIds = new Set(myCourts.map((c) => c.id));
+  const myCourtNames = new Set(myCourts.map((c) => c.name));
+  // Older reviews may lack courtId (pre-Firestore data), so fall back to the
+  // court name when the id is not present.
+  const myReviews = reviews.filter(
+    (r) => myCourtIds.has(r.courtId ?? '') || myCourtNames.has(r.courtName)
+  );
 
   const handleReplySubmit = (reviewId: string, e: React.FormEvent) => {
     e.preventDefault();
@@ -24,14 +35,14 @@ export const OwnerReviews: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {reviews.length === 0 ? (
+        {myReviews.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
             <span className="material-symbols-outlined text-3xl text-gray-300 mb-1">rate_review</span>
-            <p className="text-xs font-semibold text-gray-500">Aún no hay reseñas registradas.</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Las reseñas que dejen los jugadores aparecerán aquí.</p>
+            <p className="text-xs font-semibold text-gray-500">Aún no hay reseñas para tus canchas.</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Las reseñas que dejen los jugadores en tus canchas aparecerán aquí.</p>
           </div>
         ) : (
-          reviews.map((rev) => (
+          myReviews.map((rev) => (
           <div key={rev.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200/80 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

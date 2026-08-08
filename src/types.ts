@@ -69,6 +69,7 @@ export interface Booking {
 export interface Review {
   id: string;
   userId?: string;
+  courtId?: string;
   author: string;
   avatarLetter: string;
   rating: number;
