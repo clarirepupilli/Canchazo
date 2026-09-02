@@ -1,5 +1,9 @@
 export type UserRole = 'player' | 'owner' | null;
 
+// Sentinel for "no maximum price" in the price filter: courts are only
+// dropped by the max filter when it holds a concrete number.
+export const NO_MAX_PRICE = Number.MAX_SAFE_INTEGER;
+
 export type SportType = 'futbol' | 'padel' | 'tenis';
 
 export type TimeSlotCategory = 'morning' | 'afternoon' | 'night';
@@ -81,10 +85,8 @@ export interface Review {
 
 export interface FilterState {
   sport: SportType | 'all';
-  minPrice: number;
   maxPrice: number;
   timeCategories: TimeSlotCategory[];
   exactTime: string;
-  surfaces: SurfaceType[];
   searchQuery: string;
 }

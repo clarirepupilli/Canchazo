@@ -8,16 +8,19 @@ rules_version = '2';
 //            el rol lo otorgan owners (promote); la cuenta propia NO
 //            puede auto-promoverse.
 //  - courts: lectura pública (catálogo); escritura solo de owners.
-//  - bookings: lectura solo autenticada (la disponibilidad se deriva
-//            del stream de reservas en el cliente); creación con
-//            userId propio; estados los cambia el owner o el propio
-//            jugador (Cancelado/Pendiente).
+//  - bookings: lectura autenticada (cualquier usuario con sesión), porque
+//            la disponibilidad se deriva del lado del cliente leyendo todas
+//            las reservas; creación con userId propio y, para owners, solo
+//            en canchas propias; los estados los cambia el dueño de la cancha
+//            (pagos/estado) o el propio jugador (Cancelado/Pendiente).
 //  - reviews: lectura pública; escritura de jugadores autenticados;
-//            reply del owner.
+//            reply/delete del owner únicamente sobre canchas propias
+//            (scoped al owner vía courtId).
 //
-// Limitación conocida: por la disponibilidad derivada del lado del
-// cliente, cualquier usuario autenticado puede leer docs de bookings.
-// Si se necesita privacidad real, mover la disponibilidad al servidor.
+// Limitación conocida: por la disponibilidad derivada del lado del cliente,
+// cualquier usuario autenticado puede leer docs de bookings (aunque el panel
+// y la gestión ya están acotados al dueño). Si se necesita privacidad real,
+// mover la disponibilidad a un backend/server endpoint.
 // ============================================================
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -31,6 +34,12 @@ service cloud.firestore {
 
     function isOwnerOf() {
       return isSignedIn() && isOwner(request.auth.uid) && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isReviewOwner() {
+      return isSignedIn() && isOwner(request.auth.uid)
+        && 'courtId' in resource.data
+        && get(/databases/$(database)/documents/courts/$(resource.data.courtId)).data.ownerId == request.auth.uid;
     }
 
     match /users/{userId} {
@@ -63,28 +72,38 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
+      // Lectura autenticada: la disponibilidad client-side necesita ver todas
+      // las reservas. La gestión (update/delete) sí está acotada al dueño.
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
-        // Owners register manual bookings with any payment state; players can
-        // only create pending bookings (never pre-mark themselves as paid).
-        && (isOwner(request.auth.uid) || request.resource.data.status == 'Pendiente');
+        && (
+          // Owners register manual bookings for their OWN courts, with any
+          // payment state; players can only create pending bookings (never
+          // pre-mark themselves as paid).
+          (isOwner(request.auth.uid)
+            && get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.ownerId == request.auth.uid)
+          ||
+          request.resource.data.status == 'Pendiente'
+        );
       allow update: if isSignedIn() && (
-        isOwner(request.auth.uid)
+        // Owner of the booking's court (pays/marks status).
+        get(/databases/$(database)/documents/courts/$(resource.data.courtId)).data.ownerId == request.auth.uid
         ||
         // Player cancels/reactivates their own booking (status only).
         (request.auth.uid == resource.data.userId
           && request.resource.data.status in ['Cancelado', 'Pendiente']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
       );
-      allow delete: if isSignedIn() && isOwner(request.auth.uid);
+      allow delete: if isSignedIn()
+        && get(/databases/$(database)/documents/courts/$(resource.data.courtId)).data.ownerId == request.auth.uid;
     }
 
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isOwner(request.auth.uid);
-      allow delete: if isSignedIn() && isOwner(request.auth.uid);
+      allow update: if isReviewOwner();
+      allow delete: if isReviewOwner();
     }
   }
 }

@@ -112,7 +112,12 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
         setBookingsState(snapshot.docs.map((d) => toBooking(d.id, d.data())));
       },
       (error) => {
-        setBookingsState([]);
+        // A transient permission/network error must not wipe known bookings
+        // (that would fake every slot free). Only guests (no session) get an
+        // empty list; signed-in users keep the last known stream.
+        if (!uid) {
+          setBookingsState([]);
+        }
         // eslint-disable-next-line no-console
         console.error('[canchazo] bookings subscription error', error);
       }

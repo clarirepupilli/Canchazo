@@ -102,7 +102,7 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose }
       return;
     }
     const priceValue = Number(price);
-    if (!priceValue || priceValue <= 0) {
+    if (!Number.isFinite(priceValue) || priceValue <= 0) {
       showToast('Ingresá un precio válido.');
       return;
     }
@@ -115,7 +115,7 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose }
       name: name.trim(),
       complexName: complexName.trim(),
       sport,
-      sportLabel: sport === 'futbol' ? 'Fútbol 5' : sport === 'padel' ? 'Pádel' : 'Tenis',
+      sportLabel: sport === 'futbol' ? 'Fútbol 5' : 'Pádel',
       pricePerHour: priceValue,
       currency: '$',
       rating: court?.rating ?? 0,
@@ -124,7 +124,7 @@ export const CourtFormModal: React.FC<CourtFormModalProps> = ({ court, onClose }
       imageUrl: photos[0],
       images: photos,
       amenities,
-      surface: sport === 'padel' ? 'cristal' : sport === 'tenis' ? 'cemento' : 'sintetico',
+      surface: sport === 'padel' ? 'cristal' : 'sintetico',
       whatsappNumber: whatsapp.trim(),
       paymentMethods: [
         ...(paymentCash ? ['Efectivo' as const] : []),

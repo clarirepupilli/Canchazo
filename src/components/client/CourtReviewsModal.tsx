@@ -15,7 +15,11 @@ interface CourtReviewsModalProps {
  */
 export const CourtReviewsModal: React.FC<CourtReviewsModalProps> = ({ court, onClose }) => {
   const { reviews } = useApp();
-  const courtReviews = reviews.filter((r) => r.courtName === court.name);
+  // Match by courtId when available (unique per court); fall back to name for
+  // legacy reviews written before courtId was stored.
+  const courtReviews = reviews.filter(
+    (r) => r.courtId === court.id || (!r.courtId && r.courtName === court.name)
+  );
 
   return createPortal(
     <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-[#111c2d]/80 backdrop-blur-xs animate-fade-in overflow-y-auto">

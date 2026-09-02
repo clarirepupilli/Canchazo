@@ -15,11 +15,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
   const { addBooking, authUser, setShowAuthModal, showToast } = useApp();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const paymentOptions =
+    court.paymentMethods && court.paymentMethods.length > 0
+      ? court.paymentMethods
+      : ['Efectivo', 'Transferencia Bancaria'];
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() =>
+    court.paymentMethods && court.paymentMethods.length > 0 ? court.paymentMethods[0] : 'Efectivo'
+  );
 
   const dateDisplay = formatDateDisplay(date);
 
   const handleConfirmReservation = () => {
+    if (isSubmitting) return;
     if (!authUser) {
       setShowAuthModal(true);
       showToast('Iniciá sesión para confirmar tu reserva.');
@@ -34,24 +42,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
       return;
     }
 
-    // Save to context state
-    addBooking({
-      courtId: court.id,
-      courtName: court.name,
-      complexName: court.complexName,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      sport: court.sport,
-      date,
-      dateDisplay,
-      timeSlot,
-      price: court.pricePerHour,
-      paymentMethod,
-      status: 'Pendiente',
-      whatsappNumber: court.whatsappNumber,
-    });
+    setIsSubmitting(true);
+    try {
+      // Save to context state
+      addBooking({
+        courtId: court.id,
+        courtName: court.name,
+        complexName: court.complexName,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        sport: court.sport,
+        date,
+        dateDisplay,
+        timeSlot,
+        price: court.pricePerHour,
+        paymentMethod,
+        status: 'Pendiente',
+        whatsappNumber: court.whatsappNumber,
+      });
 
-    onSuccess();
+      onSuccess();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -127,8 +140,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                 className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm font-semibold text-[#111c2d] focus:border-[#10b981] outline-none"
               >
-                <option value="Efectivo">Efectivo</option>
-                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                {paymentOptions.map((pm) => (
+                  <option key={pm} value={pm}>
+                    {pm}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -175,7 +191,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ court, timeSlot, dat
             <button
               type="button"
               onClick={handleConfirmReservation}
-              className="w-full flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#0e9f6f] text-white py-4 px-6 rounded-xl font-headline text-sm font-extrabold tracking-wide uppercase transition-all shadow-md active:scale-95"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#0e9f6f] text-white py-4 px-6 rounded-xl font-headline text-sm font-extrabold tracking-wide uppercase transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined">check_circle</span>
               <span>RESERVAR</span>

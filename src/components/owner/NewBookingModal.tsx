@@ -9,16 +9,18 @@ interface NewBookingModalProps {
 }
 
 export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => {
-  const { addBooking, courts, bookings, currentOwnerComplexName } = useApp();
+  const { addBooking, courts, bookings, authUser, showToast } = useApp();
+  // Owners can only book their own courts; never another complex's.
+  const myCourts = courts.filter((c) => c.ownerId === authUser?.uid);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [courtName, setCourtName] = useState(courts[0]?.name || '');
+  const [courtName, setCourtName] = useState(myCourts[0]?.name || '');
   const [timeSlot, setTimeSlot] = useState('');
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState<BookingStatus>('Pagado');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Efectivo');
 
-  const selectedCourt = courts.find((c) => c.name === courtName) ?? courts[0] ?? null;
+  const selectedCourt = myCourts.find((c) => c.name === courtName) ?? myCourts[0] ?? null;
   const todayIso = toISODate(new Date());
   const dateDisplay = formatDateDisplay(todayIso);
 
@@ -47,18 +49,27 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
     e.preventDefault();
     if (!customerName) return;
     if (!timeSlot || !selectedCourt) return;
+    // Empty price falls back to the court's own price per hour (the field is
+    // pre-filled with it); an explicit value must be a finite non-negative
+    // number.
+    const priceValue = price.trim() === '' ? selectedCourt.pricePerHour : Number(price);
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      showToast('Ingresá un precio válido.');
+      return;
+    }
+    const finalPrice = priceValue || selectedCourt.pricePerHour;
 
     addBooking({
       courtId: selectedCourt.id,
       courtName: selectedCourt.name,
-      complexName: currentOwnerComplexName,
+      complexName: selectedCourt.complexName,
       customerName,
       customerPhone,
       sport: selectedCourt.sport,
       date: todayIso,
       dateDisplay,
       timeSlot,
-      price: Number(price) || selectedCourt.pricePerHour,
+      price: finalPrice,
       paymentMethod,
       status,
       whatsappNumber: selectedCourt.whatsappNumber,
@@ -125,10 +136,10 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
                 onChange={(e) => setCourtName(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-[#10b981] outline-none bg-white font-medium"
               >
-                {courts.length === 0 ? (
+                {myCourts.length === 0 ? (
                   <option value="">Sin canchas registradas</option>
                 ) : (
-                  courts.map((court) => (
+                  myCourts.map((court) => (
                     <option key={court.id} value={court.name}>
                       {court.name}
                     </option>
@@ -204,7 +215,7 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({ onClose }) => 
             </button>
             <button
               type="submit"
-              disabled={!timeSlot || !selectedCourt}
+              disabled={!timeSlot || !selectedCourt || myCourts.length === 0}
               className="flex-1 bg-[#10b981] hover:bg-[#0e9f6f] text-white py-3 rounded-xl text-xs font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Guardar Reserva

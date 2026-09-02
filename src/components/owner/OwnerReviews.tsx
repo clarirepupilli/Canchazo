@@ -14,7 +14,7 @@ export const OwnerReviews: React.FC = () => {
   // Older reviews may lack courtId (pre-Firestore data), so fall back to the
   // court name when the id is not present.
   const myReviews = reviews.filter(
-    (r) => myCourtIds.has(r.courtId ?? '') || myCourtNames.has(r.courtName)
+    (r) => (r.courtId && myCourtIds.has(r.courtId)) || (!r.courtId && myCourtNames.has(r.courtName))
   );
 
   const handleReplySubmit = (reviewId: string, e: React.FormEvent) => {
@@ -78,7 +78,7 @@ export const OwnerReviews: React.FC = () => {
               </div>
             )}
 
-            {!rev.reply && (
+            {!rev.reply && rev.courtId && (
               <div className="pt-1">
                 {activeReplyId === rev.id ? (
                   <form onSubmit={(e) => handleReplySubmit(rev.id, e)} className="flex gap-2">

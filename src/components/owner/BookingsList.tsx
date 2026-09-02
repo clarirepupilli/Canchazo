@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatDateDisplay } from '../../utils/date';
+import { Booking, BookingStatus } from '../../types';
 
 const sortByDateTime = (a: { date: string; timeSlot: string }, b: { date: string; timeSlot: string }) => {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;
@@ -8,9 +9,45 @@ const sortByDateTime = (a: { date: string; timeSlot: string }, b: { date: string
 };
 
 export const BookingsList: React.FC = () => {
-  const { bookings, toggleBookingStatus, deleteBooking } = useApp();
+  const { bookings: allBookings, toggleBookingStatus, deleteBooking, courts, authUser, showToast } = useApp();
   const [dayFilter, setDayFilter] = useState<string>('all');
   const [slotFilter, setSlotFilter] = useState<string>('all');
+
+  // Owners only see bookings for the courts they actually own; a court's
+  // ownerId is the source of truth (the booking itself carries no owner ref).
+  const ownerCourtIds = useMemo(
+    () =>
+      new Set(
+        (authUser ? courts.filter((c) => c.ownerId === authUser.uid) : courts).map((c) => c.id)
+      ),
+    [courts, authUser]
+  );
+  const bookings = useMemo(
+    () => allBookings.filter((b) => ownerCourtIds.has(b.courtId)),
+    [allBookings, ownerCourtIds]
+  );
+
+  const handleToggleStatus = (booking: Booking, targetStatus: BookingStatus) => {
+    if (!ownerCourtIds.has(booking.courtId)) {
+      showToast('No podés modificar reservas de otras canchas.');
+      return;
+    }
+    toggleBookingStatus(booking.id, targetStatus);
+  };
+
+  const handleDeleteBooking = (booking: Booking) => {
+    if (!ownerCourtIds.has(booking.courtId)) {
+      showToast('No podés eliminar reservas de otras canchas.');
+      return;
+    }
+    if (
+      window.confirm(
+        `¿Eliminar definitivamente la reserva de ${booking.customerName}? Esta acción no se puede deshacer.`
+      )
+    ) {
+      deleteBooking(booking.id);
+    }
+  };
 
   const availableDays = useMemo(
     () => [...new Set(bookings.map((b) => b.date))].sort().reverse(),
@@ -187,7 +224,7 @@ export const BookingsList: React.FC = () => {
                 <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
                   <button
                     type="button"
-                    onClick={() => toggleBookingStatus(booking.id, 'Pagado')}
+                    onClick={() => handleToggleStatus(booking, 'Pagado')}
                     className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
                       isPaid
                         ? 'bg-emerald-500 text-white shadow-xs'
@@ -199,7 +236,7 @@ export const BookingsList: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => toggleBookingStatus(booking.id, 'Pendiente')}
+                    onClick={() => handleToggleStatus(booking, 'Pendiente')}
                     className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
                       isPending
                         ? 'bg-amber-500 text-white shadow-xs'
@@ -211,7 +248,7 @@ export const BookingsList: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => toggleBookingStatus(booking.id, 'Cancelado')}
+                    onClick={() => handleToggleStatus(booking, 'Cancelado')}
                     className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
                       isCanceled
                         ? 'bg-red-500 text-white shadow-xs'
@@ -226,15 +263,7 @@ export const BookingsList: React.FC = () => {
                 {isCanceled && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `¿Eliminar definitivamente la reserva de ${booking.customerName}? Esta acción no se puede deshacer.`
-                        )
-                      ) {
-                        deleteBooking(booking.id);
-                      }
-                    }}
+                    onClick={() => handleDeleteBooking(booking)}
                     className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all"
                     title="Eliminar reserva"
                   >

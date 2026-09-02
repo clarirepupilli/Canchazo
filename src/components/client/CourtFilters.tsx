@@ -1,9 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { SportType, TimeSlotCategory } from '../../types';
+import { SportType, TimeSlotCategory, NO_MAX_PRICE } from '../../types';
 
 export const CourtFilters: React.FC = () => {
-  const { filters, setFilters, resetFilters, showFilterModal, setShowFilterModal, showToast } = useApp();
+  const { filters, setFilters, resetFilters, showFilterModal, setShowFilterModal, showToast, courts } = useApp();
+  const maxCourtPrice = courts.reduce((m, c) => Math.max(m, c.pricePerHour), 0);
+  const sliderMax = Math.max(maxCourtPrice, 500000);
 
   if (!showFilterModal) return null;
 
@@ -103,22 +105,24 @@ export const CourtFilters: React.FC = () => {
                 Rango de Precio
               </h3>
               <span className="text-sm font-bold text-[#10b981]">
-                Hasta ${filters.maxPrice.toLocaleString('es-AR')}
+                {filters.maxPrice === NO_MAX_PRICE
+                  ? 'Sin límite'
+                  : `Hasta $${filters.maxPrice.toLocaleString('es-AR')}`}
               </span>
             </div>
             <div className="px-2 pt-2">
               <input
                 type="range"
                 min={1000}
-                max={500000}
+                max={sliderMax}
                 step={1000}
-                value={filters.maxPrice}
+                value={filters.maxPrice === NO_MAX_PRICE ? sliderMax : Math.min(filters.maxPrice, sliderMax)}
                 onChange={handlePriceChange}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#10b981]"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-2 font-medium">
                 <span>$1.000</span>
-                <span>$500.000+</span>
+                <span>${sliderMax.toLocaleString('es-AR')}+</span>
               </div>
             </div>
           </section>

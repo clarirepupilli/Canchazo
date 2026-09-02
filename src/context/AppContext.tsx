@@ -1,18 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { Court, Booking, Review, UserRole, FilterState, BookingStatus } from '../types';
+import { Court, Booking, Review, UserRole, FilterState, BookingStatus, NO_MAX_PRICE } from '../types';
 import { auth, db, isFirebaseConfigured } from '../firebase';
 import { useLocalStore } from '../hooks/useLocalStore';
 import { useFirestoreStore } from '../hooks/useFirestoreStore';
 
 const DEFAULT_FILTERS: FilterState = {
   sport: 'all',
-  minPrice: 1000,
-  maxPrice: 500000,
+  maxPrice: NO_MAX_PRICE,
   timeCategories: ['morning', 'afternoon', 'night'],
   exactTime: '',
-  surfaces: ['sintetico'],
   searchQuery: '',
 };
 

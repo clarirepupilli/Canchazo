@@ -4,7 +4,7 @@ import { CourtCard } from './CourtCard';
 import { CourtFilters } from './CourtFilters';
 import { BookingModal } from './BookingModal';
 import { computeAvailability } from '../../services/availability';
-import { Court } from '../../types';
+import { Court, NO_MAX_PRICE } from '../../types';
 import { toISODate } from '../../utils/date';
 
 interface CourtSearchProps {
@@ -49,8 +49,8 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
     if (filters.sport !== 'all' && court.sport !== filters.sport) {
       return false;
     }
-    // Max price
-    if (court.pricePerHour > filters.maxPrice) {
+    // Max price (NO_MAX_PRICE means no cap: every court is allowed)
+    if (filters.maxPrice !== NO_MAX_PRICE && court.pricePerHour > filters.maxPrice) {
       return false;
     }
     // Search query
@@ -75,13 +75,18 @@ export const CourtSearch: React.FC<CourtSearchProps> = ({ onlyFavorites = false 
     }
     // Exact time filter: at least one available slot whose range contains the time
     if (filters.exactTime && !guest) {
-      const exact = parseTimeToMinutes(filters.exactTime);
+      let exact = parseTimeToMinutes(filters.exactTime);
       const hasMatchingSlot = court.timeSlots.some((ts) => {
         if (!ts.available) return false;
         const parts = ts.displayTime.split(' - ');
         if (parts.length !== 2) return false;
         const start = parseTimeToMinutes(parts[0]);
-        const end = parseTimeToMinutes(parts[1]);
+        // Overnight slots (e.g. "23:00 - 00:00") end on the next day.
+        let end = parseTimeToMinutes(parts[1]);
+        if (end <= start) {
+          end += 1440;
+          if (exact < start) exact += 1440;
+        }
         return exact >= start && exact < end;
       });
       if (!hasMatchingSlot) {
