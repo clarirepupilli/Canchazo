@@ -1,4 +1,4 @@
-import { Court } from '../types';
+import type { Court } from '../types';
 
 export const INITIAL_COURTS: Court[] = [
   {
