@@ -9,17 +9,17 @@ export interface ReviewInput {
 }
 
 export interface ForumPostInput {
-  bookingId: string;
-  courtId: string;
-  courtName: string;
-  complexName: string;
-  date: string;
-  dateDisplay: string;
-  timeSlot: string;
+  bookingId?: string;
+  courtId?: string;
+  courtName?: string;
+  complexName?: string;
+  date?: string;
+  dateDisplay?: string;
+  timeSlot?: string;
   playersNeeded: number;
   message?: string;
   author: string;
-  whatsappContact: string;
+  whatsappContact?: string;
 }
 
 /**

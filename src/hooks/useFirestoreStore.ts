@@ -358,7 +358,11 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
       setPostsState((prev) => [newPost, ...prev]);
       toast('Aviso publicado en el foro');
 
-      void setDoc(doc(collection(firestore, 'posts'), newPost.id), stripUndefined({ ...newPost })).catch(() => {
+      // Do NOT store `id` as a document field: it is the document ID, and the
+      // Firestore create rule's keys().hasOnly() would reject it as an
+      // unauthorized key.
+      const { id: _id, ...postData } = newPost;
+      void setDoc(doc(collection(firestore, 'posts'), newPost.id), stripUndefined(postData)).catch(() => {
         setPostsState((prev) => prev.filter((p) => p.id !== newPost.id));
         toast('Error al publicar el aviso. Intentá de nuevo.');
       });

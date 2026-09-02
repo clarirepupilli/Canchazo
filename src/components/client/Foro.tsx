@@ -1,20 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { formatDateDisplay, toISODate } from '../../utils/date';
 import type { ForumPost } from '../../types';
+import { ForumPublishFreeModal } from './ForumPublishFreeModal';
 
 /**
- * "Foro de Jugadores": a public wall of LFM (looking-for-members) posts that
- * a team publishes from one of its future bookings. Joining goes through a
- * WhatsApp deep link so nobody needs an account.
+ * "Foro de Jugadores": a public wall of LFM (looking-for-members) posts.
+ * Booking-based posts include court/date/time details; free-text posts are
+ * generic "busco jugadores" notices without structured booking fields.
  */
 export const Foro: React.FC = () => {
   const { posts, closePost, authUser, setShowAuthModal } = useApp();
+  const [showFreeModal, setShowFreeModal] = useState(false);
 
+  // Split posts into dated (booking) and undated (free-text).
+  // Dated posts keep the original behavior: shown when date >= today, whether
+  // open or closed (a closed booking post stays visible as "Completo" until its
+  // date passes). Undated (free-text) posts are always shown while open.
   const todayIso = toISODate(new Date());
-  const visiblePosts = posts
-    .filter((p) => p.date >= todayIso)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.timeSlot.localeCompare(b.timeSlot));
+  const datedPosts = posts
+    .filter((p) => p.date && p.date >= todayIso)
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || (a.timeSlot ?? '').localeCompare(b.timeSlot ?? ''));
+  const undatedPosts = posts
+    .filter((p) => !p.date && p.status === 'open')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const visiblePosts = [...datedPosts, ...undatedPosts];
 
   const handleClosePost = (post: ForumPost) => {
     if (window.confirm('¿Marcar el aviso como completo?')) {
@@ -22,16 +32,41 @@ export const Foro: React.FC = () => {
     }
   };
 
+  const isFreePost = (post: ForumPost) => !post.courtName;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
       {/* Sticky header */}
       <div className="sticky top-16 z-40 bg-[#f9f9ff] dark:bg-[#111c2d] pt-2 pb-3">
-        <h1 className="font-headline text-2xl md:text-3xl font-extrabold text-[#111c2d] dark:text-white">
-          Foro
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-          Los equipos buscan jugadores para completar sus partidos
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="font-headline text-2xl md:text-3xl font-extrabold text-[#111c2d] dark:text-white">
+              Foro
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+              Los equipos buscan jugadores para completar sus partidos
+            </p>
+          </div>
+          {authUser ? (
+            <button
+              type="button"
+              onClick={() => setShowFreeModal(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 bg-[#10b981] hover:bg-[#0e9f6f] text-white px-3.5 py-2 rounded-full text-xs font-bold transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-sm">campaign</span>
+              <span>Publicar aviso</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 bg-[#10b981] hover:bg-[#0e9f6f] text-white px-3.5 py-2 rounded-full text-xs font-bold transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-sm">login</span>
+              <span>Publicar aviso</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {!authUser && (
@@ -79,26 +114,34 @@ export const Foro: React.FC = () => {
                 </span>
               )}
 
-              {/* Title */}
-              <h3 className="font-headline text-base font-bold text-[#111c2d] mt-2">
-                {post.courtName}
-              </h3>
-              <p className="text-xs text-gray-600 font-medium">{post.complexName}</p>
-
-              {/* Details */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 font-medium">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-[#10b981]">calendar_month</span>
-                  {formatDateDisplay(post.date)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-[#10b981]">schedule</span>
-                  {post.timeSlot}
-                </span>
-              </div>
-
-              {post.message && (
-                <p className="text-xs text-gray-500 italic mt-2">{post.message}</p>
+              {isFreePost(post) ? (
+                /* ---- Free-text post ---- */
+                <>
+                  <h3 className="font-headline text-base font-bold text-[#111c2d] mt-2">
+                    {post.message || 'Busco jugadores'}
+                  </h3>
+                </>
+              ) : (
+                /* ---- Booking-based post ---- */
+                <>
+                  <h3 className="font-headline text-base font-bold text-[#111c2d] mt-2">
+                    {post.courtName}
+                  </h3>
+                  <p className="text-xs text-gray-600 font-medium">{post.complexName}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 font-medium">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm text-[#10b981]">calendar_month</span>
+                      {formatDateDisplay(post.date!)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm text-[#10b981]">schedule</span>
+                      {post.timeSlot}
+                    </span>
+                  </div>
+                  {post.message && (
+                    <p className="text-xs text-gray-500 italic mt-2">{post.message}</p>
+                  )}
+                </>
               )}
 
               {/* Footer */}
@@ -111,7 +154,9 @@ export const Foro: React.FC = () => {
                     (post.whatsappContact ? (
                       <a
                         href={`https://wa.me/${post.whatsappContact}?text=${encodeURIComponent(
-                          `Hola! Vi en Canchazo que faltan jugadores para ${post.courtName} (${post.complexName}) el ${post.dateDisplay} de ${post.timeSlot}. Me sumo!`
+                          isFreePost(post)
+                            ? 'Hola! Vi tu aviso en Canchazo y me sumo!'
+                            : `Hola! Vi en Canchazo que faltan jugadores para ${post.courtName} (${post.complexName}) el ${post.dateDisplay} de ${post.timeSlot}. Me sumo!`
                         )}`}
                         target="_blank"
                         rel="noreferrer"
@@ -146,6 +191,8 @@ export const Foro: React.FC = () => {
           ))}
         </div>
       )}
+
+      {showFreeModal && <ForumPublishFreeModal onClose={() => setShowFreeModal(false)} />}
     </div>
   );
 };
