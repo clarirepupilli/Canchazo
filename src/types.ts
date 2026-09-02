@@ -70,6 +70,24 @@ export interface Booking {
   createdAt: string;
 }
 
+export interface ForumPost {
+  id: string;
+  userId?: string;
+  bookingId: string;
+  courtId: string;
+  courtName: string;
+  complexName: string;
+  date: string; // YYYY-MM-DD copied from the booking
+  dateDisplay: string; // e.g. "Sáb, 5 Sep" copied from the booking
+  timeSlot: string; // e.g. "19:00 - 20:00" copied from the booking
+  playersNeeded: number;
+  message?: string;
+  author: string; // customerName from the booking (who published)
+  whatsappContact: string; // customerPhone || whatsappNumber from the booking
+  status: 'open' | 'closed';
+  createdAt: string; // ISO
+}
+
 export interface Review {
   id: string;
   userId?: string;

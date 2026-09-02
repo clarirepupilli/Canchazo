@@ -16,6 +16,8 @@ rules_version = '2';
 //  - reviews: lectura pública; escritura de jugadores autenticados;
 //            reply/delete del owner únicamente sobre canchas propias
 //            (scoped al owner vía courtId).
+//  - posts: lectura pública; creación autenticada desde una reserva propia;
+//           cierre solo del autor del aviso.
 //
 // Limitación conocida: por la disponibilidad derivada del lado del cliente,
 // cualquier usuario autenticado puede leer docs de bookings (aunque el panel
@@ -97,6 +99,19 @@ service cloud.firestore {
       );
       allow delete: if isSignedIn()
         && get(/databases/$(database)/documents/courts/$(resource.data.courtId)).data.ownerId == request.auth.uid;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.keys().hasOnly(['userId', 'bookingId', 'courtId', 'courtName', 'complexName', 'date', 'dateDisplay', 'timeSlot', 'playersNeeded', 'message', 'author', 'whatsappContact', 'status', 'createdAt']);
+      allow update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'closed';
+      allow delete: if false;
     }
 
     match /reviews/{reviewId} {

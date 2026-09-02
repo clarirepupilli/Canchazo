@@ -64,6 +64,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, ownerMo
           >
             Favoritos
           </button>
+          <button
+            onClick={() => setActiveTab('forum')}
+            className={pillButtonClass(activeTab === 'forum')}
+          >
+            Foro
+          </button>
           {userRole === 'owner' && setOwnerMode && (
             <button
               onClick={() => setOwnerMode('admin')}

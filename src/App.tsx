@@ -6,11 +6,13 @@ import { Toast } from './components/common/Toast';
 import { AuthModal } from './components/auth/AuthModal';
 import { CourtSearch } from './components/client/CourtSearch';
 import { MyBookings } from './components/client/MyBookings';
+import { Foro } from './components/client/Foro';
 import { OwnerDashboard } from './components/owner/OwnerDashboard';
 
 const MainAppContent: React.FC = () => {
   const { userRole } = useApp();
-  const [activeClientTab, setActiveClientTab] = useState<string>('search');
+  type ActiveClientTab = 'search' | 'my-bookings' | 'favorites' | 'forum';
+  const [activeClientTab, setActiveClientTab] = useState<ActiveClientTab>('search');
   const [activeOwnerSubTab, setActiveOwnerSubTab] = useState<string>('dashboard');
   // Owners can browse as a customer ("client") or manage their complex ("admin").
   const [ownerMode, setOwnerMode] = useState<'client' | 'admin'>('admin');
@@ -18,7 +20,7 @@ const MainAppContent: React.FC = () => {
   const isClientMode = userRole === 'player' || ownerMode === 'client';
   const activeTab = isClientMode ? activeClientTab : activeOwnerSubTab;
   const handleSetTab = (tab: string) => {
-    if (isClientMode) setActiveClientTab(tab);
+    if (isClientMode) setActiveClientTab(tab as ActiveClientTab);
     else setActiveOwnerSubTab(tab);
   };
 
@@ -36,7 +38,9 @@ const MainAppContent: React.FC = () => {
       <div className="flex-1 pb-20 md:pb-6">
         {isClientMode ? (
           <>
-            {activeClientTab === 'my-bookings' ? (
+            {activeClientTab === 'forum' ? (
+              <Foro />
+            ) : activeClientTab === 'my-bookings' ? (
               <MyBookings />
             ) : activeClientTab === 'favorites' ? (
               <CourtSearch onlyFavorites={true} />

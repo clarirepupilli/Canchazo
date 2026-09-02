@@ -9,7 +9,7 @@ import {
   type DocumentData,
   type Firestore,
 } from 'firebase/firestore';
-import type { Booking, Court, Review, TimeSlot } from '../types';
+import type { Booking, Court, ForumPost, Review, TimeSlot } from '../types';
 
 // Firestore collection names in the canchazo-app project.
 const COURTS_COLLECTION = 'courts';
@@ -38,7 +38,7 @@ export interface TemplateSlot {
  * fields can be `undefined` in the UI (e.g. NewBookingModal sends
  * `whatsappNumber: undefined` when no court is selected), so drop them.
  */
-function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+export function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) clean[key] = value;
@@ -84,6 +84,11 @@ export function toBooking(id: string, data: DocumentData): Booking {
 
 export function toReview(id: string, data: DocumentData): Review {
   return { ...(data as unknown as Review), id };
+}
+
+export function toPost(id: string, data: Record<string, unknown>): ForumPost {
+  // `message` stays undefined when absent (stripUndefined never stores it).
+  return { ...(data as unknown as ForumPost), id };
 }
 
 /** Court doc for storage: full entity, template slots, no undefined fields. */

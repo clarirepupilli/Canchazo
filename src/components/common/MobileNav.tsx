@@ -52,6 +52,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab, o
             </span>
             <span className="text-[11px] font-semibold mt-0.5">Favoritos</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('forum')}
+            className={navButtonClass(activeTab === 'forum')}
+          >
+            <span className={`material-symbols-outlined text-2xl ${activeTab === 'forum' ? 'fill' : ''}`}>
+              forum
+            </span>
+            <span className="text-[11px] font-semibold mt-0.5">Foro</span>
+          </button>
         </>
       ) : isOwnerClientMode ? (
         <>
@@ -92,6 +102,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab, o
               favorite
             </span>
             <span className="text-[11px] font-semibold mt-0.5">Favoritos</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('forum')}
+            className={navButtonClass(activeTab === 'forum')}
+          >
+            <span className={`material-symbols-outlined text-2xl ${activeTab === 'forum' ? 'fill' : ''}`}>
+              forum
+            </span>
+            <span className="text-[11px] font-semibold mt-0.5">Foro</span>
           </button>
         </>
       ) : (

@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { Court, Booking, Review, UserRole, FilterState, BookingStatus, NO_MAX_PRICE } from '../types';
+import { Court, Booking, Review, ForumPost, UserRole, FilterState, BookingStatus, NO_MAX_PRICE } from '../types';
 import { auth, db, isFirebaseConfigured } from '../firebase';
 import { useLocalStore } from '../hooks/useLocalStore';
 import { useFirestoreStore } from '../hooks/useFirestoreStore';
+import type { ForumPostInput } from '../hooks/dataStore';
 
 const DEFAULT_FILTERS: FilterState = {
   sport: 'all',
@@ -30,6 +31,9 @@ interface AppContextType {
   reviews: Review[];
   addReview: (data: { courtId?: string; courtName: string; rating: number; comment: string; author: string }) => void;
   addReviewReply: (reviewId: string, replyText: string) => void;
+  posts: ForumPost[];
+  addPost: (data: ForumPostInput) => void;
+  closePost: (postId: string) => void;
   favorites: string[];
   toggleFavorite: (courtId: string) => void;
   filters: FilterState;
@@ -88,7 +92,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? useFirestoreStore(showToast, authUser?.uid ?? null)
     : useLocalStore(showToast);
 
-  const { courts, addCourt, updateCourt, bookings, addBooking, toggleBookingStatus, deleteBooking, reviews, addReview, addReviewReply } = dataLayer;
+  const { courts, addCourt, updateCourt, bookings, addBooking, toggleBookingStatus, deleteBooking, reviews, addReview, addReviewReply, posts, addPost, closePost } = dataLayer;
 
   // Firebase auth session. In local (non-Firebase) mode there is no session,
   // so the app keeps the legacy player view.
@@ -162,6 +166,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         reviews,
         addReview,
         addReviewReply,
+        posts,
+        addPost,
+        closePost,
         favorites,
         toggleFavorite,
         filters,

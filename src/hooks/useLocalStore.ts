@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Booking, BookingStatus, Court, Review } from '../types';
-import type { DataStore, ReviewInput } from './dataStore';
+import type { Booking, BookingStatus, Court, ForumPost, Review } from '../types';
+import type { DataStore, ForumPostInput, ReviewInput } from './dataStore';
 
 /**
  * Local data layer: the original localStorage-backed behavior. Kept EXACTLY as
@@ -43,6 +43,18 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     return [];
   });
 
+  const [posts, setPosts] = useState<ForumPost[]>(() => {
+    const saved = localStorage.getItem('canchazo_posts');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
   useEffect(() => {
     const sanitizedCourts = courts.map((c) => ({
       ...c,
@@ -59,6 +71,10 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
   useEffect(() => {
     localStorage.setItem('canchazo_reviews', JSON.stringify(reviews));
   }, [reviews]);
+
+  useEffect(() => {
+    localStorage.setItem('canchazo_posts', JSON.stringify(posts));
+  }, [posts]);
 
   const addCourt = useCallback(
     (newCourt: Court) => {
@@ -208,6 +224,30 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     [showToast]
   );
 
+  const addPost = useCallback(
+    (data: ForumPostInput) => {
+      const newPost: ForumPost = {
+        ...data,
+        id: 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      };
+      setPosts((prev) => [newPost, ...prev]);
+      showToast('Aviso publicado en el foro');
+    },
+    [showToast]
+  );
+
+  const closePost = useCallback(
+    (postId: string) => {
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, status: 'closed' } : p))
+      );
+      showToast('Aviso marcado como completo');
+    },
+    [showToast]
+  );
+
   return {
     courts,
     addCourt,
@@ -219,5 +259,8 @@ export function useLocalStore(showToast: (msg: string) => void): DataStore {
     reviews,
     addReview,
     addReviewReply,
+    posts,
+    addPost,
+    closePost,
   };
 }

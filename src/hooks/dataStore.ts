@@ -1,4 +1,4 @@
-import type { Booking, BookingStatus, Court, Review } from '../types';
+import type { Booking, BookingStatus, Court, ForumPost, Review } from '../types';
 
 export interface ReviewInput {
   courtId?: string;
@@ -6,6 +6,20 @@ export interface ReviewInput {
   rating: number;
   comment: string;
   author: string;
+}
+
+export interface ForumPostInput {
+  bookingId: string;
+  courtId: string;
+  courtName: string;
+  complexName: string;
+  date: string;
+  dateDisplay: string;
+  timeSlot: string;
+  playersNeeded: number;
+  message?: string;
+  author: string;
+  whatsappContact: string;
 }
 
 /**
@@ -23,4 +37,7 @@ export interface DataStore {
   reviews: Review[];
   addReview: (data: ReviewInput) => void;
   addReviewReply: (reviewId: string, replyText: string) => void;
+  posts: ForumPost[];
+  addPost: (data: ForumPostInput) => void;
+  closePost: (postId: string) => void;
 }

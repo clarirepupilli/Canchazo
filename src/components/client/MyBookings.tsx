@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { toISODate } from '../../utils/date';
+import { ForumPublishModal } from './ForumPublishModal';
+import type { Booking } from '../../types';
 
 export const MyBookings: React.FC = () => {
-  const { bookings, authUser, setShowAuthModal, toggleBookingStatus, showToast } = useApp();
+  const { bookings, authUser, setShowAuthModal, toggleBookingStatus, posts, addPost } = useApp();
+  const [publishTarget, setPublishTarget] = useState<Booking | null>(null);
   const myBookings = authUser ? bookings.filter((b) => b.userId === authUser.uid) : [];
 
   return (
@@ -92,6 +96,19 @@ export const MyBookings: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 justify-end">
+                {(booking.status === 'Pendiente' || booking.status === 'Pagado') &&
+                  booking.date >= toISODate(new Date()) &&
+                  !posts.some((p) => p.bookingId === booking.id) && (
+                    <button
+                      type="button"
+                      onClick={() => setPublishTarget(booking)}
+                      className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200 transition-colors flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">campaign</span>
+                      <span>Publicar en el foro</span>
+                    </button>
+                  )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -132,6 +149,10 @@ export const MyBookings: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {publishTarget && (
+        <ForumPublishModal booking={publishTarget} onClose={() => setPublishTarget(null)} />
       )}
     </div>
   );

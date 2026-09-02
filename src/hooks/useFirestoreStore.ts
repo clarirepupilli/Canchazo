@@ -12,16 +12,18 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase';
 import { INITIAL_COURTS } from '../data/mockCourts';
-import type { Booking, BookingStatus, Court, Review } from '../types';
-import type { DataStore, ReviewInput } from './dataStore';
+import type { Booking, BookingStatus, Court, ForumPost, Review } from '../types';
+import type { DataStore, ForumPostInput, ReviewInput } from './dataStore';
 import {
   hasActiveBooking,
   migrateLocalData,
   seedCourts,
+  stripUndefined,
   toBooking,
   toBookingDoc,
   toCourt,
   toCourtDoc,
+  toPost,
   toReview,
 } from '../services/firestoreService';
 
@@ -65,6 +67,7 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
   const [courts, setCourtsState] = useState<Court[]>([]);
   const [bookings, setBookingsState] = useState<Booking[]>([]);
   const [reviews, setReviewsState] = useState<Review[]>([]);
+  const [posts, setPostsState] = useState<ForumPost[]>([]);
 
   const toast = showToast;
 
@@ -127,10 +130,15 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
       setReviewsState(snapshot.docs.map((d) => toReview(d.id, d.data())));
     });
 
+    const postsUnsub = onSnapshot(collection(firestore, 'posts'), (snapshot) => {
+      setPostsState(snapshot.docs.map((d) => toPost(d.id, d.data())));
+    });
+
     return () => {
       courtsUnsub();
       bookingsUnsub();
       reviewsUnsub();
+      postsUnsub();
     };
   }, [firestore, toast, uid]);
 
@@ -337,6 +345,46 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
     [firestore, reviews, toast]
   );
 
+  const addPost = useCallback(
+    (data: ForumPostInput) => {
+      const newPost: ForumPost = {
+        ...data,
+        id: 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+        userId: uid ?? undefined,
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      };
+
+      setPostsState((prev) => [newPost, ...prev]);
+      toast('Aviso publicado en el foro');
+
+      void setDoc(doc(collection(firestore, 'posts'), newPost.id), stripUndefined({ ...newPost })).catch(() => {
+        setPostsState((prev) => prev.filter((p) => p.id !== newPost.id));
+        toast('Error al publicar el aviso. Intentá de nuevo.');
+      });
+    },
+    [firestore, toast, uid]
+  );
+
+  const closePost = useCallback(
+    (postId: string) => {
+      setPostsState((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, status: 'closed' } : p))
+      );
+      toast('Aviso marcado como completo');
+
+      void updateDoc(doc(collection(firestore, 'posts'), postId), { status: 'closed' }).catch(
+        () => {
+          setPostsState((prev) =>
+            prev.map((p) => (p.id === postId ? { ...p, status: 'open' } : p))
+          );
+          toast('Error al cerrar el aviso. Intentá de nuevo.');
+        }
+      );
+    },
+    [firestore, toast]
+  );
+
   return {
     courts,
     addCourt,
@@ -348,5 +396,8 @@ export function useFirestoreStore(showToast: (msg: string) => void, uid: string 
     reviews,
     addReview,
     addReviewReply,
+    posts,
+    addPost,
+    closePost,
   };
 }
